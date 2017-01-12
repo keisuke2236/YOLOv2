@@ -8,10 +8,6 @@ from chainer import serializers, optimizers, Variable, cuda
 import chainer.functions as F
 from darknet19 import Darknet19
 
-# use GPU
-cuda.check_cuda_available()
-cuda.get_device(0).use()
-
 # hyper parameters
 input_height, input_width = (224, 224)
 train_file = "../dataset/fruits_pretrain_dataset/train.txt"
@@ -54,7 +50,11 @@ backup_file = "%s/backup.model" % (backup_path)
 if os.path.isfile(backup_file):
     serializers.load_hdf5(backup_file, model) # load saved model
 model.train = True
-model.to_gpu() # for gpu
+
+if hasattr(cuda, "cupy"):
+    cuda.get_device(0).use()
+    model.to_gpu() # for gpu
+
 
 optimizer = optimizers.MomentumSGD(lr=learning_rate, momentum=momentum)
 optimizer.use_cleargrads()
@@ -68,8 +68,9 @@ for batch in range(max_batches):
     batch_mask = np.random.choice(len(x_train), batch_size)
     x = Variable(x_train[batch_mask])
     t = Variable(t_train[batch_mask])
-    x.to_gpu() # for gpu
-    t.to_gpu() # for gpu
+    if hasattr(cuda, "cupy"):
+        x.to_gpu() # for gpu
+        t.to_gpu() # for gpu
 
     y, loss, accuracy = model(x, t)
     print("[batch %d (%d images)] learning rate: %f, loss: %f, accuracy: %f" % (batch+1, (batch+1) * batch_size, optimizer.lr, loss.data, accuracy.data))
