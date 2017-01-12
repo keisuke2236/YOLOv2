@@ -27,7 +27,7 @@ darknetのオリジナル実装はこちら：
 - NINと同じようにGlobal Average pooling層を採用し、入力解像度への依存をなくした。
 
 
-### darknetの訓練
+### darknet19の訓練
 
 以下のコマンドでdarknet19のモデルの学習を行う。
 変更点は、最終層に`softmax_cross_entropy`を使っている点以外、オリジナルコードと同じ。
@@ -38,3 +38,11 @@ darknetのオリジナル実装はこちら：
 python darknet19_train.py
 ```
 
+
+### darknet19のテスト
+以下のコマンドで、学習済みのモデルを使って、指定した画像をカテゴライズする。
+テストに使用する学習済み重みのファイル等、ハイパーパラメータを変更する時は、`darknet19_predict.py`を書き換える。
+
+```
+python darknet19_predict.py "画像へのパス"
+```
