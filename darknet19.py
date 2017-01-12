@@ -93,6 +93,12 @@ class Darknet19(Chain):
         # reshape and compute loss
         h = F.reshape(h, (batch_size, -1)) 
         y = F.softmax(h)
+
+        #one_hot_t = np.zeros(y.data.shape, dtype=y.dtype.type)
+        #one_hot_t[0][t.data[0]] = 1
+        #loss = F.mean_squared_error(y, Variable(one_hot_t))
+        #print(loss.data)
+
         loss = F.softmax_cross_entropy(h, t)
         accuracy = F.accuracy(h, t)
 
