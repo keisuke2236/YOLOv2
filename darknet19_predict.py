@@ -22,11 +22,12 @@ with open(label_file, "r") as f:
     labels = f.read().strip().split("\n")
 
 # load model
+print("loading image datasets...")
 model = Darknet19Predictor(Darknet19())
 serializers.load_hdf5(weight_file, model) # load saved model
-#model.train = False
+model.train = False
 
-# download and read image
+# read image
 img = cv2.imread(image_file)
 img = cv2.resize(img, (input_height, input_width))
 img = np.asarray(img, dtype=np.float32) / 255.0
@@ -40,9 +41,12 @@ if hasattr(cuda, "cupy"):
     model.to_gpu()
     x.to_gpu()
 
-y = model.predict(x)
-max_arg = int(y.data.flatten().argmax())
-cls = labels[max_arg]
-prob = y.data.flatten()[max_arg] * 100
+y = model.predict(x).data
+if hasattr(cuda, "cupy"):
+    y = y.get()
 
-print(cls, prob)
+predicted_order = np.argsort(-y.flatten())
+for index in predicted_order:
+    cls = labels[index]
+    prob = y.flatten()[index] * 100
+    print("%10s : %.2f%%" % (cls, prob))
