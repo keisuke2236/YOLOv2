@@ -27,11 +27,14 @@ darknetのオリジナル実装はこちら：
 - NINと同じようにGlobal Average pooling層を採用し、入力解像度への依存をなくした。
 
 
+### darknetの訓練
 
 以下のコマンドでdarknet19のモデルの学習を行う。
-変更点は、最終層にsoftmax_cross_entropyを使っている点以外、オリジナルコードと同じ。
+変更点は、最終層に`softmax_cross_entropy`を使っている点以外、オリジナルコードと同じ。
+`setup.sh`は、必要なディレクトリを作成する初期化スクリプト。
 
 ```
+./setup.sh
 python darknet19_train.py
 ```
 
