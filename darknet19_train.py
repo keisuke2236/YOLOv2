@@ -6,7 +6,7 @@ import glob
 import os
 from chainer import serializers, optimizers, Variable, cuda
 import chainer.functions as F
-from darknet19 import Darknet19
+from darknet19 import *
 
 # hyper parameters
 input_height, input_width = (224, 224)
@@ -42,19 +42,17 @@ for image_file in image_files:
 x_train = np.array(x_train)
 t_train = np.array(t_train, dtype=np.int32)
 
-
 # load model
 print("loading model...")
-model = Darknet19()
-backup_file = "%s/backup.model" % (backup_path)
+model = Darknet19Predictor(Darknet19())
+backup_file = "%s/4000.model" % (backup_path)
 if os.path.isfile(backup_file):
     serializers.load_hdf5(backup_file, model) # load saved model
-model.train = True
 
+model.train = True
 if hasattr(cuda, "cupy"):
     cuda.get_device(0).use()
     model.to_gpu() # for gpu
-
 
 optimizer = optimizers.MomentumSGD(lr=learning_rate, momentum=momentum)
 optimizer.use_cleargrads()

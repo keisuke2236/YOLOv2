@@ -1,18 +1,48 @@
-from lib.preprocess import download_image
 import time
 import cv2
 import numpy as np
 from chainer import serializers, Variable
 import chainer.functions as F
-from darknet19 import Darknet19
+import argparse
+from darknet19 import *
+
+# argument parse
+parser = argparse.ArgumentParser(description="指定したパスの画像を読み込み、darknet19でカテゴリ分類を行う")
+parser.add_argument('path', help="クラス分類する画像へのパスを指定")
+args = parser.parse_args()
+
+# hyper parameters
+input_height, input_width = (224, 224)
+weight_file = "./backup/backup.model"
+label_file = "../dataset/fruits_pretrain_dataset/label.txt"
+image_file = args.path
+
+# read labels
+with open(label_file, "r") as f:
+    labels = f.read().strip().split("\n")
 
 # load model
-model = Darknet19()
-model.train = False
+model = Darknet19Predictor(Darknet19())
+serializers.load_hdf5(weight_file, model) # load saved model
+#model.train = False
 
-image_path = download_image()
-img = cv2.imread(image_path).astype(np.float32)
-img = cv2.resize(img, (224, 224))
-x_data = img.transpose(2, 0, 1)[np.newaxis, :, :, :]
+# download and read image
+img = cv2.imread(image_file)
+img = cv2.resize(img, (input_height, input_width))
+img = np.asarray(img, dtype=np.float32) / 255.0
+img = img.transpose(2, 0, 1)
+
+# forward
+x_data = img[np.newaxis, :, :, :]
 x = Variable(x_data)
-model(x)
+if hasattr(cuda, "cupy"):
+    cuda.get_device(0).use()
+    model.to_gpu()
+    x.to_gpu()
+
+y = model.predict(x)
+max_arg = int(y.data.flatten().argmax())
+cls = labels[max_arg]
+prob = y.data.flatten()[max_arg] * 100
+
+print(cls, prob)

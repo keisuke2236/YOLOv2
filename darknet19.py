@@ -58,7 +58,7 @@ class Darknet19(Chain):
         )
         self.train = False
 
-    def __call__(self, x, t):
+    def __call__(self, x):
         batch_size = x.data.shape[0]
 
         ##### common layer
@@ -90,16 +90,31 @@ class Darknet19(Chain):
         h = self.conv19(h)
         h = F.average_pooling_2d(h, h.data.shape[-1], stride=1, pad=0)
 
-        # reshape and compute loss
-        h = F.reshape(h, (batch_size, -1)) 
-        y = F.softmax(h)
+        # reshape
+        y = F.reshape(h, (batch_size, -1)) 
+        return y
 
+class Darknet19Predictor(Chain):
+    def __init__(self, predictor):
+        super(Darknet19Predictor, self).__init__(predictor=predictor)
+
+    def __call__(self, x, t):
+        y = self.predictor(x)
+
+        #y = F.softmax(h)
         #one_hot_t = np.zeros(y.data.shape, dtype=y.dtype.type)
         #one_hot_t[0][t.data[0]] = 1
         #loss = F.mean_squared_error(y, Variable(one_hot_t))
         #print(loss.data)
 
-        loss = F.softmax_cross_entropy(h, t)
-        accuracy = F.accuracy(h, t)
-
+        loss = F.softmax_cross_entropy(y, t)
+        accuracy = F.accuracy(y, t)
+        print("----------------------")
+        print(np.argmax(y.data, axis=1))
+        print(t.data)
         return y, loss, accuracy
+
+    def predict(self, x):
+        y = self.predictor(x)
+        return F.softmax(y)
+
