@@ -1,18 +1,23 @@
-from lib.preprocess import download_image
 import time
 import cv2
 import numpy as np
 import chainer
 import glob
-from chainer import serializers, optimizers, Variable
+import os
+from chainer import serializers, optimizers, Variable, cuda
 import chainer.functions as F
 from darknet19 import Darknet19
 
+# use GPU
+cuda.check_cuda_available()
+cuda.get_device(0).use()
+
 # hyper parameters
 input_height, input_width = (224, 224)
-train_file = "../dataset/fruits_train_dataset/train.txt"
-label_file = "../dataset/fruits_train_dataset/label.txt"
-batch_size = 4
+train_file = "../dataset/fruits_pretrain_dataset/train.txt"
+label_file = "../dataset/fruits_pretrain_dataset/label.txt"
+backup_path = "backup"
+batch_size = 64
 max_batches = 10000
 learning_rate = 0.1
 lr_decay_power = 4
@@ -28,7 +33,7 @@ with open(label_file, "r") as f:
 
 x_train = []
 t_train = []
-print("loading images")
+print("loading image datasets...")
 for image_file in image_files:
     img = cv2.imread(image_file)
     img = cv2.resize(img, (input_height, input_width))
@@ -41,20 +46,30 @@ for image_file in image_files:
 x_train = np.array(x_train)
 t_train = np.array(t_train, dtype=np.int32)
 
+
 # load model
+print("loading model...")
 model = Darknet19()
+backup_file = "%s/backup.model" % (backup_path)
+if os.path.isfile(backup_file):
+    serializers.load_hdf5(backup_file, model) # load saved model
 model.train = True
+model.to_gpu() # for gpu
 
 optimizer = optimizers.MomentumSGD(lr=learning_rate, momentum=momentum)
 optimizer.use_cleargrads()
 optimizer.setup(model)
 optimizer.add_hook(chainer.optimizer.WeightDecay(weight_decay))
 
+
 # start to train
+print("start training")
 for batch in range(max_batches):
     batch_mask = np.random.choice(len(x_train), batch_size)
-    x = x_train[batch_mask]
-    t = t_train[batch_mask]
+    x = Variable(x_train[batch_mask])
+    t = Variable(t_train[batch_mask])
+    x.to_gpu() # for gpu
+    t.to_gpu() # for gpu
 
     y, loss, accuracy = model(x, t)
     print("[batch %d (%d images)] learning rate: %f, loss: %f, accuracy: %f" % (batch+1, (batch+1) * batch_size, optimizer.lr, loss.data, accuracy.data))
@@ -64,3 +79,13 @@ for batch in range(max_batches):
 
     optimizer.lr = learning_rate * (1 - batch / max_batches) ** lr_decay_power # Polynomial decay learning rate
     optimizer.update()
+
+    # save model
+    if (batch+1) % 100 == 0:
+        model_file = "%s/%s.model" % (backup_path, batch+1)
+        print("saving model to %s" % (model_file))
+        serializers.save_hdf5(model_file, model)
+        serializers.save_hdf5(backup_file, model)
+
+print("saving model to %s/final.model" % (backup_path))
+serializers.save_hdf5("%s/final.model" % (backup_path), model)
