@@ -45,11 +45,11 @@ t_train = np.array(t_train, dtype=np.int32)
 # load model
 print("loading model...")
 model = Darknet19Predictor(Darknet19())
-backup_file = "%s/4000.model" % (backup_path)
+backup_file = "%s/backup.model" % (backup_path)
 if os.path.isfile(backup_file):
     serializers.load_hdf5(backup_file, model) # load saved model
 
-model.train = True
+model.train = False
 if hasattr(cuda, "cupy"):
     cuda.get_device(0).use()
     model.to_gpu() # for gpu
