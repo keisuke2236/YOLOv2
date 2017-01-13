@@ -25,7 +25,7 @@ with open(label_file, "r") as f:
 print("loading image datasets...")
 model = Darknet19Predictor(Darknet19())
 serializers.load_hdf5(weight_file, model) # load saved model
-model.train = False
+model.predictor.train = False
 
 # read image
 img = cv2.imread(image_file)
