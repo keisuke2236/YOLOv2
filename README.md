@@ -19,7 +19,8 @@ darknetのオリジナル実装はこちら：
 - VGGと同じくほとんどのカーネルを3x3とし、pooling層の後に必ずchannel数を2倍にする。
 - GoogLeNetと同じように、3x3の層の間に1x1の層を入れて次元削減を行う。
 - 最後のfully-connectの全結合層を取っ払い、代わりにFCN構造を採用。
-- Batch Normalizationを全てのConv層に入れる(その後に更にBias層を入れる)。
+- Batch Normalizationを全てのConv層に入れる。
+- Conv層ではBiasを使わない。Batch Normの後にBias層を入れる(channel単位でBias共有)。
 - softmax関数の後、cross entropyの代わりにsum of squared errorを使う。
 - 全てのactivation関数について、reluの代わりにleaky reluを使う。(slope=0.1)
 - momentum=0.9、weight decay=0.0005を使って学習する。
