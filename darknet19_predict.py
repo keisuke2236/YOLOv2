@@ -21,17 +21,18 @@ image_file = args.path
 with open(label_file, "r") as f:
     labels = f.read().strip().split("\n")
 
-# load model
-print("loading image datasets...")
-model = Darknet19Predictor(Darknet19())
-serializers.load_hdf5(weight_file, model) # load saved model
-model.predictor.train = False
-
 # read image
+print("loading image...")
 img = cv2.imread(image_file)
 img = cv2.resize(img, (input_height, input_width))
 img = np.asarray(img, dtype=np.float32) / 255.0
 img = img.transpose(2, 0, 1)
+
+# load model
+print("loading model...")
+model = Darknet19Predictor(Darknet19())
+serializers.load_hdf5(weight_file, model) # load saved model
+model.predictor.train = False
 
 # forward
 x_data = img[np.newaxis, :, :, :]
