@@ -36,9 +36,10 @@ for image_file in image_files:
     img = np.asarray(img, dtype=np.float32) / 255.0
     img = img.transpose(2, 0, 1)
     x_train.append(img)
+    t_train.append(np.zeros(len(labels)))
     for i, label in enumerate(labels):
         if label in image_file:
-            t_train.append(i)
+            t_train[-1][i] = 1 # use one_hot_label
 x_train = np.array(x_train)
 t_train = np.array(t_train, dtype=np.int32)
 
