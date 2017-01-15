@@ -28,7 +28,8 @@ with open(label_file, "r") as f:
     labels = f.read().strip().split("\n")
 
 x_train = []
-t_train = []
+t_train = [] # normal label
+t_train_one_hot = [] # one hot label
 print("loading image datasets...")
 for image_file in image_files:
     img = cv2.imread(image_file)
@@ -36,12 +37,14 @@ for image_file in image_files:
     img = np.asarray(img, dtype=np.float32) / 255.0
     img = img.transpose(2, 0, 1)
     x_train.append(img)
-    t_train.append(np.zeros(len(labels)))
+    t_train_one_hot.append(np.zeros(len(labels)))
     for i, label in enumerate(labels):
         if label in image_file:
-            t_train[-1][i] = 1 # use one_hot_label
+            t_train.append(i)
+            t_train_one_hot[-1][i] = 1
 x_train = np.array(x_train)
 t_train = np.array(t_train, dtype=np.int32)
+t_train_one_hot = np.array(t_train_one_hot, dtype=np.float32)
 
 # load model
 print("loading model...")
@@ -66,7 +69,8 @@ print("start training")
 for batch in range(max_batches):
     batch_mask = np.random.choice(len(x_train), batch_size)
     x = Variable(x_train[batch_mask])
-    t = Variable(t_train[batch_mask])
+    #t = Variable(t_train[batch_mask]) # use normal label and softmax_cross_entropy
+    t = Variable(t_train_one_hot[batch_mask]) # use one hot label and squared error
     if hasattr(cuda, "cupy"):
         x.to_gpu() # for gpu
         t.to_gpu() # for gpu

@@ -119,11 +119,11 @@ class Darknet19Predictor(Chain):
     def __call__(self, x, t):
         y = self.predictor(x)
 
-        if t.ndim == 2: # one hot label
+        if t.ndim == 2: # use squared error when label is one hot label
             y = F.softmax(y)
             loss = F.mean_squared_error(y, t)
-            accuracy = F.accuracy(t, t.data.argmax(axis=1).astype(np.int32))
-        else:
+            accuracy = F.accuracy(y, t.data.argmax(axis=1).astype(np.int32))
+        else: # use softmax cross entropy when label is normal label
             loss = F.softmax_cross_entropy(y, t)
             accuracy = F.accuracy(y, t)
 
