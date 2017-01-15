@@ -22,6 +22,7 @@ darknetのオリジナル実装はこちら：
 - Batch Normalizationを全てのConv層に入れる(分散調整用のepsは1e-5、betaを使わない)。
 - Conv層ではBiasを使わない。Batch Normの後にBias層を入れる(channel単位でBias共有)。
 - softmax関数の後、cross entropyの代わりにsum of squared errorを使う。
+  (sum of squared errorよりもmean squared errorのほうが収束が早いのでここではmean squared errorを使う)
 - 全てのactivation関数について、reluの代わりにleaky reluを使う。(slope=0.1)
 - momentum=0.9、weight decay=0.0005を使って学習する。
 - learning rateについて、初期値0.1で、4乗のPolynomial decay方式で減衰させる。
