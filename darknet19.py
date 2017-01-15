@@ -4,6 +4,7 @@ from chainer import Link, Chain, ChainList
 import chainer.links as L
 import chainer.functions as F
 from lib.utils import *
+from lib.functions import *
 import time
 
 class Darknet19(Chain):
