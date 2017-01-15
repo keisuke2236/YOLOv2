@@ -11,7 +11,7 @@ class Darknet19(Chain):
 
     """
     Darknet19
-    - It takes (224, 224, 3) sized image as input
+    - It takes (224, 224, 3) or (448, 448, 4) sized image as input
     """
 
     def __init__(self):
