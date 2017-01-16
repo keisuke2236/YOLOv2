@@ -14,7 +14,7 @@ train_file = "../dataset/fruits_dataset/train.txt"
 label_file = "../dataset/fruits_dataset/label.txt"
 backup_path = "backup"
 batch_size = 16
-max_batches = 10000
+max_batches = 3000
 learning_rate = 0.001
 lr_decay_power = 4
 momentum = 0.9
@@ -86,7 +86,7 @@ for batch in range(max_batches):
     optimizer.update()
 
     # save model
-    if (batch+1) % 100 == 0:
+    if (batch+1) % 500 == 0:
         model_file = "%s/%s.model" % (backup_path, batch+1)
         print("saving model to %s" % (model_file))
         serializers.save_hdf5(model_file, model)
