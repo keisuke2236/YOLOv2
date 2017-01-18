@@ -12,7 +12,7 @@ parser.add_argument('path', help="クラス分類する画像へのパスを指�
 args = parser.parse_args()
 
 # hyper parameters
-input_height, input_width = (224, 224)
+input_height, input_width = (448, 448)
 weight_file = "./backup/backup.model"
 label_file = "../dataset/fruits_pretrain_dataset/label.txt"
 image_file = args.path
