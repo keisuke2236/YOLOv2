@@ -13,7 +13,7 @@ class YOLOv2(Chain):
     - It takes (416, 416, 3) sized image as input
     """
 
-    def __init__(self):
+    def __init__(self, n_classes, n_boxes):
         super(YOLOv2, self).__init__(
             ##### common layers for both pretrained layers and yolov2 #####
             conv1  = L.Convolution2D(3, 32, ksize=3, stride=1, pad=1, nobias=True),
@@ -81,14 +81,14 @@ class YOLOv2(Chain):
             conv21 = L.Convolution2D(3072, 1024, ksize=3, stride=1, pad=1, nobias=True),
             bn21   = L.BatchNormalization(1024, use_beta=False),
             bias21 = L.Bias(shape=(1024,)),
-            conv22 = L.Convolution2D(1024, 75, ksize=1, stride=1, pad=0),
+            conv22 = L.Convolution2D(1024, n_boxes * (n_classes + 5), ksize=1, stride=1, pad=0),
         )
         self.train = False
         self.finetune = False
+        self.n_boxes = n_boxes
+        self.n_classes = n_classes
 
     def __call__(self, x):
-        batch_size = x.data.shape[0]
-
         ##### common layer
         h = F.leaky_relu(self.bias1(self.bn1(self.conv1(x), test=not self.train, finetune=self.finetune)), slope=0.1)
         h = F.max_pooling_2d(h, ksize=2, stride=2, pad=0)
@@ -122,10 +122,18 @@ class YOLOv2(Chain):
         h = F.leaky_relu(self.bias21(self.bn21(self.conv21(h), test=not self.train, finetune=self.finetune)), slope=0.1)
         h = self.conv22(h)
 
-
         # reshape
-        #h = F.average_pooling_2d(h, h.data.shape[-1], stride=1, pad=0)
-        #y = F.reshape(h, (batch_size, -1)) 
+        batch_size, input_channel, input_height, input_width = h.shape
+        h = F.reshape(F.transpose(h, (0, 2, 3, 1)), (batch_size, input_height, input_width, self.n_boxes, -1))
+        x, y, w, h, conf, categories = F.split_axis(h, (1, 2, 3, 4, 5), axis=4)
+
+        categories = F.transpose(F.softmax(F.transpose(categories, (0, 4, 1, 2, 3))), (0, 2, 3, 4, 1)) # softmax(categories)
+        conf = F.sigmoid(conf) # sigmoid(conf)
+        x = F.sigmoid(x)
+        y = F.sigmoid(y)
+        w = F.exp(w)
+        h = F.exp(h)
+
         return h
 
 class YOLOv2Predictor(Chain):

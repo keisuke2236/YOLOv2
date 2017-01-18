@@ -6,7 +6,7 @@ import chainer.functions as F
 from yolov2 import *
 
 # load model
-model = YOLOv2()
+model = YOLOv2(n_classes=10, n_boxes=5)
 model.train = True
 
 image_path = download_image()
