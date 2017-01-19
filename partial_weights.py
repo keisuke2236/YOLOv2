@@ -38,7 +38,7 @@ output_weight_file = "./backup/partial.model"
 model = Darknet19Predictor(Darknet19())
 serializers.load_hdf5(input_weight_file, model) # load saved model
 
-yolov2 = YOLOv2(n_classes=10, n_boxes=5)
+yolov2 = YOLOv2(n_classes=10, n_boxes=2)
 copy_conv_layer(model.predictor, yolov2, range(1, 19))
 copy_bias_layer(model.predictor, yolov2, range(1, 19))
 copy_bn_layer(model.predictor, yolov2, range(1, 19))
