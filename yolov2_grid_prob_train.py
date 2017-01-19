@@ -6,19 +6,25 @@ import glob
 import os
 from chainer import serializers, optimizers, Variable, cuda
 import chainer.functions as F
-from darknet19 import *
+from yolov2_grid_prob import *
+from lib.utils import *
 
 # hyper parameters
-input_height, input_width = (224, 224)
-train_file = "../dataset/fruits_pretrain_dataset/train.txt"
-label_file = "../dataset/fruits_pretrain_dataset/label.txt"
+input_height, input_width = (416, 416)
+train_file = "../dataset/yolov2_fruits_dataset/train.txt"
+label_file = "../dataset/yolov2_fruits_dataset/label.txt"
+truth_path = "../dataset/yolov2_fruits_dataset/labels/"
+initial_weight_file = "./backup/partial.model"
 backup_path = "backup"
+backup_file = "%s/backup.model" % (backup_path)
 batch_size = 16
-max_batches = 10000
-learning_rate = 0.1
+max_batches = 1000
+learning_rate = 0.01
 lr_decay_power = 4
 momentum = 0.9
-weight_decay = 0.0005
+weight_decay = 0.005
+n_classes = 10
+n_boxes = 2
 
 # load dataset
 with open(train_file, "r") as f:
@@ -29,7 +35,6 @@ with open(label_file, "r") as f:
 
 x_train = []
 t_train = [] # normal label
-t_train_one_hot = [] # one hot label
 print("loading image datasets...")
 for image_file in image_files:
     img = cv2.imread(image_file)
@@ -37,22 +42,28 @@ for image_file in image_files:
     img = np.asarray(img, dtype=np.float32) / 255.0
     img = img.transpose(2, 0, 1)
     x_train.append(img)
-    t_train_one_hot.append(np.zeros(len(labels)))
-    for i, label in enumerate(labels):
-        if label in image_file:
-            t_train.append(i)
-            t_train_one_hot[-1][i] = 1
+
+    groundtruth_file = truth_path + image_file.split("/")[-1].split(".")[0] + ".txt"
+    with open(groundtruth_file, "r") as f:
+        truth_objects = f.read().strip().split("\n")
+        truth_info = []
+        for truth_object in truth_objects:
+            one_hot_label = np.zeros(len(labels)) # one hot label
+            label, x, y, w, h = truth_object.split(" ")
+            one_hot_label[label] = 1
+            truth_info.append({"label": label, "one_hot_label": one_hot_label, "x": x, "y": y, "h": h, "w": w})
+        t_train.append(truth_info)
+
 x_train = np.array(x_train)
-t_train = np.array(t_train, dtype=np.int32)
-t_train_one_hot = np.array(t_train_one_hot, dtype=np.float32)
 
 # load model
-print("loading model...")
-model = Darknet19Predictor(Darknet19())
-backup_file = "%s/backup.model" % (backup_path)
-if os.path.isfile(backup_file):
-    serializers.load_hdf5(backup_file, model) # load saved model
+print("loading initial model...")
+yolov2_grid_prob = YOLOv2GridProb(n_classes=n_classes, n_boxes=n_boxes)
+model = YOLOv2GridProbPredictor(yolov2_grid_prob)
+serializers.load_hdf5(initial_weight_file, model)
+
 model.predictor.train = True
+model.predictor.finetune = False
 
 if hasattr(cuda, "cupy"):
     cuda.get_device(0).use()
@@ -63,33 +74,31 @@ optimizer.use_cleargrads()
 optimizer.setup(model)
 optimizer.add_hook(chainer.optimizer.WeightDecay(weight_decay))
 
-
 # start to train
 print("start training")
 for batch in range(max_batches):
     batch_mask = np.random.choice(len(x_train), batch_size)
     x = Variable(x_train[batch_mask])
-    #t = Variable(t_train[batch_mask]) # use normal label and softmax_cross_entropy
-    t = Variable(t_train_one_hot[batch_mask]) # use one hot label and squared error
+    t = np.array(t_train)[batch_mask]
     if hasattr(cuda, "cupy"):
         x.to_gpu() # for gpu
-        t.to_gpu() # for gpu
 
-    y, loss, accuracy = model(x, t)
-    print("[batch %d (%d images)] learning rate: %f, loss: %f, accuracy: %f" % (batch+1, (batch+1) * batch_size, optimizer.lr, loss.data, accuracy.data))
+    # forward
+    loss = model(x, t)
+    print(batch, loss.data)
+    print("///////////////////////////")
 
     optimizer.zero_grads()
     loss.backward()
 
-    optimizer.lr = learning_rate * (1 - batch / max_batches) ** lr_decay_power # Polynomial decay learning rate
     optimizer.update()
 
     # save model
-    if (batch+1) % 10000 == 0:
+    if (batch+1) % 500 == 0:
         model_file = "%s/%s.model" % (backup_path, batch+1)
         print("saving model to %s" % (model_file))
         serializers.save_hdf5(model_file, model)
         serializers.save_hdf5(backup_file, model)
 
-print("saving model to %s/darknet19_final.model" % (backup_path))
-serializers.save_hdf5("%s/darknet19_final.model" % (backup_path), model)
+print("saving model to %s/yolov2_grid_prob_final.model" % (backup_path))
+serializers.save_hdf5("%s/yolov2_grid_prob_final.model" % (backup_path), model)

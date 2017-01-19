@@ -34,6 +34,7 @@ darknetのオリジナル実装はこちら：
 以下のコマンドでdarknet19のモデルの学習を行う。
 変更点は、最終層に`softmax_cross_entropy`を使っている点以外、オリジナルコードと同じ。
 `setup.sh`は、必要なディレクトリを作成する初期化スクリプト。
+学習が完了すると、`backup/darknet19_final.model`に重みパラメータを保存する。
 
 ```
 ./setup.sh
@@ -44,7 +45,57 @@ python darknet19_train.py
 ### darknet19のテスト
 以下のコマンドで、学習済みのモデルを使って、指定した画像をカテゴライズする。
 テストに使用する学習済み重みのファイル等、ハイパーパラメータを変更する時は、`darknet19_predict.py`を書き換える。
+デフォルトでは`backup/darknet19_final.model`の重みパラメータを読み込んでpredictionを行う。
 
 ```
 python darknet19_predict.py "画像へのパス"
 ```
+
+### darknet19_448の訓練
+以下のコマンドで、darknet19の学習済みモデル(`backup/backup.model`)を初期値として読み込んで、darknet19_448の訓練を行う。
+パスなどは必要に応じてコード内のハイパーパラメータを修正。学習が完了すると、`backup/darknet19_448_final.model`に重みパラメータが保存される。
+
+```
+python darknet19_448_train.py
+```
+
+### darknet19_448のテスト
+darknet19_predict.py内の重みパラメータファイル及びデータセットのパスを書き換えれば、そのままdarknet19_448のテスト可能。
+
+### darknet19_448の重み切り出し
+`partial_weights.py`のパラメータを修正して、切り出す層及び書き込み先モデルを指定する。
+読み込む重みパラメータはデフォルトで`backup/darknet19_448_final.model`になってる。書き出すファイルはデフォルトで`backup/partial.model`になる。
+書き出し先のモデル定義も、必要に応じて編集可能。デフォルトではYOLOv2()に重み代入するようにしてる。
+(modelとpredictorをYOLOv2GridProbに変更すればそれ用の重み切り出しが可能)
+一通り修正した後で、以下のコマンドを実行すればレイヤー切り出しが行われる。
+
+```
+python partial_weights.py
+```
+
+### yolov2_grid_probの訓練
+実験用のモデル、各gridの条件付き確率のみpredictionするためのFCN
+YOLOv2の全体学習の一部として実験用。
+以下のコマンドで訓練可能。ただし、重みパラメータの初期値としてpartial.modelを読み込むので、予め`partial_weights.py`でこれ用の重み切り出しを行っておく必要がある。
+
+```
+python yolov2_grid_prob_train.py
+```
+
+grid_probの訓練では各gridごとの条件付き確率を求めるので、通常のclassificationより遥かに収束が遅く、デリケート。
+sum_of_squared_errorを使う場合は誤差値が大きく、学習率を0.001とかにしても全く収束しない。入力画像の特徴ではなく、gridの場所の位置情報に対応するclassラベルとして学習されてしまう。
+(例えば右上は必ずapple)
+誤差関数にmean_squared_errorを使い、かつ学習率を0.01固定にするとちょうど良く学習される。
+ただし、学習回数を多くしすぎると過学習(?)になり、一定値まで収束した後、発散してしまう(予測された確率が全て平均値0.1になる現象)。
+データ数5000に対して、バッチサイズ16で、1000バッチまでは順調に収束した。
+
+
+### yolov2_grid_probのテスト
+以下のコマンドで、学習済みのyolov2_grid_probモデルを使って画像の大まかなセグメンテーションを行う。
+読み込む重みパラメータファイルはデフォルトで`backup/yolov2_grid_prob_final.model`
+
+```
+python yolov2_grid_prob_predict.py "画像ファイルへのパス"
+```
+
+predictした結果、`grid_prob_result.jpg`に画像が書き出される。

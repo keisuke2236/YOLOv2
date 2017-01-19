@@ -19,10 +19,10 @@ backup_path = "backup"
 backup_file = "%s/backup.model" % (backup_path)
 batch_size = 16
 max_batches = 10000
-learning_rate = 0.0001
+learning_rate = 0.01
 lr_decay_power = 4
 momentum = 0.9
-weight_decay = 0.001
+weight_decay = 0.005
 n_classes = 10
 n_boxes = 2
 
@@ -59,12 +59,13 @@ x_train = np.array(x_train)
 # load model
 print("loading initial model...")
 yolov2 = YOLOv2(n_classes=n_classes, n_boxes=n_boxes)
-if os.path.isfile(initial_weight_file):
-    serializers.load_hdf5(initial_weight_file, yolov2) # load saved model
+#if os.path.isfile(initial_weight_file):
+#    serializers.load_hdf5(initial_weight_file, yolov2) # load saved model
 model = YOLOv2Predictor(yolov2)
+serializers.load_hdf5(backup_file, model)
 
 model.predictor.train = True
-model.predictor.finetune = True
+model.predictor.finetune = False
 
 if hasattr(cuda, "cupy"):
     cuda.get_device(0).use()
@@ -95,3 +96,13 @@ for batch in range(max_batches):
 
     #optimizer.lr = learning_rate * (1 - batch / max_batches) ** lr_decay_power # Polynomial decay learning rate
     optimizer.update()
+
+    # save model
+    if (batch+1) % 100 == 0:
+        model_file = "%s/%s.model" % (backup_path, batch+1)
+        print("saving model to %s" % (model_file))
+        serializers.save_hdf5(model_file, model)
+        serializers.save_hdf5(backup_file, model)
+
+print("saving model to %s/final.model" % (backup_path))
+serializers.save_hdf5("%s/final.model" % (backup_path), model)

@@ -92,5 +92,5 @@ for batch in range(max_batches):
         serializers.save_hdf5(model_file, model)
         serializers.save_hdf5(backup_file, model)
 
-print("saving model to %s/final.model" % (backup_path))
-serializers.save_hdf5("%s/final.model" % (backup_path), model)
+print("saving model to %s/darknet19_448_final.model" % (backup_path))
+serializers.save_hdf5("%s/darknet19_448_final.model" % (backup_path), model)
