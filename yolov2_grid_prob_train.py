@@ -18,13 +18,13 @@ initial_weight_file = "./backup/partial.model"
 backup_path = "backup"
 backup_file = "%s/backup.model" % (backup_path)
 batch_size = 16
-max_batches = 3000
-learning_rate = 0.01
+max_batches = 10000
+learning_rate = 0.00001
 lr_decay_power = 4
 momentum = 0.9
 weight_decay = 0.005
 n_classes = 10
-n_boxes = 2
+n_boxes = 5
 
 # load dataset
 with open(train_file, "r") as f:
@@ -70,7 +70,6 @@ if hasattr(cuda, "cupy"):
     model.to_gpu() # for gpu
 
 optimizer = optimizers.MomentumSGD(lr=learning_rate, momentum=momentum)
-#optimizer = optimizers.SGD(lr=learning_rate)
 optimizer.use_cleargrads()
 optimizer.setup(model)
 #optimizer.add_hook(chainer.optimizer.WeightDecay(weight_decay))
