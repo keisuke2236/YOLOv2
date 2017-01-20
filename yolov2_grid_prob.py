@@ -81,7 +81,7 @@ class YOLOv2GridProb(Chain):
             conv21 = L.Convolution2D(3072, 1024, ksize=3, stride=1, pad=1, nobias=True),
             bn21   = L.BatchNormalization(1024, use_beta=False),
             bias21 = L.Bias(shape=(1024,)),
-            conv22 = L.Convolution2D(1024, n_classes, ksize=1, stride=1, pad=0),
+            conv22 = L.Convolution2D(1024, n_boxes * n_classes, ksize=1, stride=1, pad=0),
         )
         self.train = False
         self.finetune = False
@@ -127,33 +127,47 @@ class YOLOv2GridProb(Chain):
 class YOLOv2GridProbPredictor(Chain):
     def __init__(self, predictor):
         super(YOLOv2GridProbPredictor, self).__init__(predictor=predictor)
+        self.anchors = [[5.375, 5.03125], [5.40625, 4.6875], [2.96875, 2.53125], [2.59375, 2.78125], [1.9375, 3.25]]
 
     def __call__(self, x, t):
-        y = F.softmax(self.predictor(x))
-        t_categories = y.data.copy()
+        y = self.predictor(x)
+        batch_size, _, grid_h, grid_w = y.shape
+        y = F.transpose(F.reshape(y, (batch_size, self.predictor.n_boxes, self.predictor.n_classes, grid_h, grid_w)), (0, 2, 1, 3, 4))
+        y = F.softmax(y)
 
-        batch_size, n_categories, grid_h, grid_w = y.shape
+        self.abs_anchors = self.anchors / np.array([grid_w, grid_h])
+        t_categories = y.data.copy()
         for batch in range(batch_size):
             truth_box = t[batch][0]
             truth_w = int(float(truth_box["x"]) * grid_w)
             truth_h = int(float(truth_box["y"]) * grid_h)
-            t_categories[batch, :, truth_h, truth_w] = 0
-            t_categories[batch, int(truth_box["label"]), truth_h, truth_w] = 1
+            truth_n = 0
+            best_iou = 0.0
+            for anchor_index, abs_anchor in enumerate(self.abs_anchors):
+                iou = box_iou(Box(0, 0, float(truth_box["w"]), float(truth_box["h"])), Box(0, 0, abs_anchor[0], abs_anchor[1]))
+                if best_iou < iou:
+                    best_iou = iou
+                    truth_n = anchor_index
+
+            print(truth_n, truth_box["w"], truth_box["h"], abs_anchor[0], abs_anchor[1])
+            t_categories[batch, :, truth_n, truth_h, truth_w] = 0
+            t_categories[batch, int(truth_box["label"]), truth_n, truth_h, truth_w] = 1
 
             # debug prints
-            maps = F.transpose(y[batch], (1, 2, 0)).data
+            maps = F.transpose(y[batch], (2, 3, 1, 0)).data
             for maps_h in maps:
                 for maps_w in maps_h:
-                    print(np.argmax(maps_w), end=' ')
+                    print(maps_w[int(maps_w.max(axis=1).argmax())].argmax(), end=' ')
                 print("")
 
-            print(y[batch, :,  truth_h, truth_w].data)
+            print(y[batch, :, truth_n, truth_h, truth_w].data)
             print(truth_box["one_hot_label"])
 
         t_categories = Variable(t_categories)
         t_categories.to_gpu()
 
-        loss = F.mean_squared_error(y, t_categories)
+        #loss = F.mean_squared_error(y, t_categories)
+        loss = sum_of_squared_error(y, t_categories)
         return loss
 
     def predict(self, x):
