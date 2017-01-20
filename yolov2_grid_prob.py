@@ -172,4 +172,6 @@ class YOLOv2GridProbPredictor(Chain):
 
     def predict(self, x):
         y = self.predictor(x)
+        batch_size, _, grid_h, grid_w = y.shape
+        y = F.transpose(F.reshape(y, (batch_size, self.predictor.n_boxes, self.predictor.n_classes, grid_h, grid_w)), (0, 2, 1, 3, 4))
         return F.softmax(y)

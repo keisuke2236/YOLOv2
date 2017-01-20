@@ -17,7 +17,7 @@ weight_file = "./backup/yolov2_grid_prob_final.model"
 label_file = "../dataset/yolov2_fruits_dataset/label.txt"
 image_file = args.path
 n_classes = 10
-n_boxes = 2
+n_boxes = 5
 
 # read labels
 with open(label_file, "r") as f:
@@ -58,9 +58,10 @@ overlay = orig_img.copy()
 output = orig_img.copy()
 for h_index, h in enumerate(y):
     for w_index, w in enumerate(h):
-        cv2.rectangle(overlay, (grid_width*w_index, grid_height*h_index), (grid_width*(w_index+1), grid_height*(h_index+1)), colors[np.argmax(w)], -1)
+        prediction = w[int(w.max(axis=1).argmax())].argmax()
+        cv2.rectangle(overlay, (grid_width*w_index, grid_height*h_index), (grid_width*(w_index+1), grid_height*(h_index+1)), colors[prediction], -1)
 
-        print(np.argmax(w), end=' ')
+        print(prediction, end=' ')
     print("")
 print(labels)
 
