@@ -9,7 +9,7 @@ from yolov2 import *
 from yolov2_grid_prob import *
 
 n_classes = 10
-n_boxes = 2
+n_boxes = 5
 partial_layer = 18
 
 def copy_conv_layer(src, dst, layers):
