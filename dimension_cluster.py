@@ -8,8 +8,8 @@ n_anchors = 5
 loss_convergence = 1e-5
 image_width = 416
 image_height = 416
-grid_width = image_width / 13
-grid_height = image_width / 13
+grid_width = 13
+grid_height = 13
 
 boxes = []
 label_files = glob.glob("%s/*" % label_path)
