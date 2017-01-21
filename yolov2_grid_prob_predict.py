@@ -49,11 +49,11 @@ y = model.predict(x).data
 if hasattr(cuda, "cupy"):
     y = y.get()
 
-batch_size, _, grid_h, grid_w = y.shape
+batch_size, _, n_boxes, grid_h, grid_w = y.shape
 grid_height = int(orig_img.shape[0] / grid_h)
 grid_width = int(orig_img.shape[1] / grid_w)
 colors = [(255, 0, 0), (0, 125, 125), (0, 255, 0), (125, 0, 255), (125, 125, 0), (125, 0, 125), (0, 0, 255), (0, 255, 125), (125, 125, 125), (255, 125, 0)]
-y = F.transpose(y, (0, 2, 3, 1)).data.reshape(grid_h, grid_w, -1)
+y = F.transpose(y, (0, 3, 4, 2, 1)).data.reshape(grid_h, grid_w, n_boxes, -1)
 overlay = orig_img.copy()
 output = orig_img.copy()
 for h_index, h in enumerate(y):
