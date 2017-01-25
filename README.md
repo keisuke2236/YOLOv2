@@ -51,7 +51,7 @@ python darknet19_train.py
 python darknet19_predict.py "画像へのパス"
 ```
 
-### darknet19_448の訓練
+### darknet19\_448の訓練
 以下のコマンドで、darknet19の学習済みモデル(`backup/backup.model`)を初期値として読み込んで、darknet19_448の訓練を行う。
 パスなどは必要に応じてコード内のハイパーパラメータを修正。学習が完了すると、`backup/darknet19_448_final.model`に重みパラメータが保存される。
 
@@ -59,10 +59,10 @@ python darknet19_predict.py "画像へのパス"
 python darknet19_448_train.py
 ```
 
-### darknet19_448のテスト
+### darknet19\_448のテスト
 darknet19_predict.py内の重みパラメータファイル及びデータセットのパスを書き換えれば、そのままdarknet19_448のテスト可能。
 
-### darknet19_448の重み切り出し
+### darknet19\_448の重み切り出し
 `partial_weights.py`のパラメータを修正して、切り出す層及び書き込み先モデルを指定する。
 読み込む重みパラメータはデフォルトで`backup/darknet19_448_final.model`になってる。書き出すファイルはデフォルトで`backup/partial.model`になる。
 書き出し先のモデル定義も、必要に応じて編集可能。デフォルトではYOLOv2()に重み代入するようにしてる。
@@ -73,7 +73,7 @@ darknet19_predict.py内の重みパラメータファイル及びデータセッ
 python partial_weights.py
 ```
 
-### yolov2_grid_probの訓練
+### yolov2\_grid\_probの訓練
 実験用のモデル、各gridの条件付き確率のみpredictionするためのFCN
 YOLOv2の全体学習の一部として実験用。
 以下のコマンドで訓練可能。ただし、重みパラメータの初期値としてpartial.modelを読み込むので、予め`partial_weights.py`でこれ用の重み切り出しを行っておく必要がある。
@@ -82,15 +82,12 @@ YOLOv2の全体学習の一部として実験用。
 python yolov2_grid_prob_train.py
 ```
 
-grid_probの訓練では各gridごとの条件付き確率を求めるので、通常のclassificationより遥かに収束が遅く、デリケート。
-sum_of_squared_errorを使う場合は誤差値が大きく、学習率を0.001とかにしても全く収束しない。入力画像の特徴ではなく、gridの場所の位置情報に対応するclassラベルとして学習されてしまう。
-(例えば右上は必ずapple)
-誤差関数にmean_squared_errorを使い、かつ学習率を0.01固定にするとちょうど良く学習される。
-ただし、学習回数を多くしすぎると過学習(?)になり、一定値まで収束した後、発散してしまう(予測された確率が全て平均値0.1になる現象)。
-データ数5000に対して、バッチサイズ16で、1000バッチまでは順調に収束した。
+grid_probの訓練では各gridごとの条件付き確率を求めるので、通常のclassificationより遥かに収束が遅く、デリケート。sum_of_squared_errorを使う場合は誤差値が大きく、学習率を1e-5まで下げないと全く収束しない。原因としては、入力画像の特徴ではなく、gridの場所の位置情報に対応するclassラベルとして学習されてしまう。(例えば右上は必ずapple)
+誤差関数にsum_of_squared_errorを使い、かつ学習率を1e-5に固定にするとちょうど良く学習される。
+ただし、weight decayを使うと、一定期間学習した後、train lossが逆に増加し続けるので、weight decayは可能ならば使わないべき。
 
 
-### yolov2_grid_probのテスト
+### yolov2\_grid_probのテスト
 以下のコマンドで、学習済みのyolov2_grid_probモデルを使って画像の大まかなセグメンテーションを行う。
 読み込む重みパラメータファイルはデフォルトで`backup/yolov2_grid_prob_final.model`
 
@@ -99,3 +96,26 @@ python yolov2_grid_prob_predict.py "画像ファイルへのパス"
 ```
 
 predictした結果、`grid_prob_result.jpg`に画像が書き出される。
+
+
+### yolov2\_bboxの訓練
+実験用のモデル。各gridの全てのanchor boxについて、そのconfidenceとbboxの調整値を訓練する。
+YOLOv2の全体学習の一部として実験用。
+以下のコマンドで訓練可能。ただし、重みパラメータの初期値としてpartial.modelを読み込むので、予め`partial_weights.py`でこれ用の重み切り出しを行っておく必要がある。
+
+```
+python yolov2_bbox_train.py
+```
+
+オリジナル論文では、iouがthresh以下のpredicted anchor boxに対して、そのconfidenceを0になるよう修正する。その時の係数を論文では1.0にしているが、ここの実装では0.1とする。また、iouがthresh以上のpredicted anchor boxに対しては、そのconfidenceをiouになるように修正するが、論文の係数5.0に対して自分の実装では10.0にしている。
+
+### yolov2\_bbox_probのテスト
+以下のコマンドで、学習済みのyolov2_bboxモデルを使って画像のregion proposalを行う。
+読み込む重みパラメータファイルはデフォルトで`backup/yolov2_bbox_final.model`
+
+```
+python yolov2_bbox_pred.py "画像ファイルへのパス"
+```
+
+predictした結果、`bbox_pred_result.jpg`に画像が書き出される。
+正解のbboxを緑、best_iouのデフォルトboxを青、predictした結果を赤で描画している。
