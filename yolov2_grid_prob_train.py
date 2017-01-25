@@ -19,7 +19,8 @@ backup_path = "backup"
 backup_file = "%s/backup.model" % (backup_path)
 batch_size = 16
 max_batches = 10000
-learning_rate = 0.00001
+learning_rate = 1e-5
+learning_schedules = { "0": 1e-5, "500": 1e-4, "10000": 1e-5, "20000": 1e-6 }
 lr_decay_power = 4
 momentum = 0.9
 weight_decay = 0.005
@@ -77,6 +78,9 @@ optimizer.setup(model)
 # start to train
 print("start training")
 for batch in range(max_batches):
+    if str(batch) in learning_schedules:
+        optimizer.lr = learning_schedules[str(batch)]
+
     batch_mask = np.random.choice(len(x_train), batch_size)
     x = Variable(x_train[batch_mask])
     t = np.array(t_train)[batch_mask]
@@ -85,7 +89,7 @@ for batch in range(max_batches):
 
     # forward
     loss = model(x, t)
-    print(batch, loss.data)
+    print(batch, optimizer.lr, loss.data)
     print("///////////////////////////")
 
     optimizer.zero_grads()
