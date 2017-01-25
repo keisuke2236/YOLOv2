@@ -144,7 +144,7 @@ class YOLOv2Predictor(Chain):
         prob = F.softmax(prob) # probablitiyのacitivation
 
 
-        # 教師データ作成
+        # 教師データの用意
         tw = np.zeros(w.shape, dtype=np.float32) # wとhが0になるように学習(e^wとe^hは1に近づく -> 担当するbboxの倍率1)
         th = np.zeros(h.shape, dtype=np.float32)
         tx = np.tile(0.5, x.shape).astype(np.float32) # 活性化後のxとyが0.5になるように学習()
@@ -190,7 +190,7 @@ class YOLOv2Predictor(Chain):
         tconf[best_ious > self.thresh] = conf.data.get()[best_ious > self.thresh]
         conf_learning_scale[best_ious > self.thresh] = 0
 
-        # objectの存在するanchor boxのみ個別修正
+        # objectの存在するanchor boxのみ、x、y、w、h、conf、probを個別修正
         abs_anchors = self.anchors / np.array([grid_w, grid_h])
         for batch in range(batch_size):
             truth_box = t[batch][0]
@@ -241,6 +241,7 @@ class YOLOv2Predictor(Chain):
             print("best default iou: %.2f   predicted iou: %.2f   confidence: %.2f   class: %s" % (best_iou, predicted_iou, conf[batch][truth_n][0][truth_h][truth_w].data, t[batch][0]["label"]))
         print("seen = %d" % self.seen)
 
+        # loss計算
         tx, ty, tw, th, tconf, tprob = Variable(tx), Variable(ty), Variable(tw), Variable(th), Variable(tconf), Variable(tprob)
         box_learning_scale, conf_learning_scale = Variable(box_learning_scale), Variable(conf_learning_scale)
         tx.to_gpu(), ty.to_gpu(), tw.to_gpu(), th.to_gpu(), tconf.to_gpu(), tprob.to_gpu()
@@ -253,18 +254,34 @@ class YOLOv2Predictor(Chain):
         h_loss = F.sum((th - h) ** 2 * box_learning_scale) / 2
         c_loss = F.sum((tconf - conf) ** 2 * conf_learning_scale) / 2
         p_loss = F.sum((tprob - prob) ** 2) / 2
-        loss = x_loss + y_loss + w_loss + h_loss + c_loss + p_loss
         print("x_loss: %f  y_loss: %f  w_loss: %f  h_loss: %f  c_loss: %f   p_loss: %f" % 
             (F.sum(x_loss).data, F.sum(y_loss).data, F.sum(w_loss).data, F.sum(h_loss).data, F.sum(c_loss).data, F.sum(p_loss).data)
         )
+
+        loss = x_loss + y_loss + w_loss + h_loss + c_loss + p_loss
         return loss
 
     def predict(self, input_x):
         output = self.predictor(input_x)
+        batch_size, input_channel, input_h, input_w = input_x.shape
         batch_size, _, grid_h, grid_w = output.shape
-        x, y, w, h, conf = F.split_axis(F.reshape(output, (batch_size, self.predictor.n_boxes, 5, grid_h, grid_w)), (1, 2, 3, 4), axis=2)
+        x, y, w, h, conf, prob = F.split_axis(F.reshape(output, (batch_size, self.predictor.n_boxes, self.predictor.n_classes+5, grid_h, grid_w)), (1, 2, 3, 4, 5), axis=2)
         x = F.sigmoid(x) # xのactivation
         y = F.sigmoid(y) # yのactivation
         conf = F.sigmoid(conf) # confのactivation
+        prob = F.transpose(prob, (0, 2, 1, 3, 4))
+        prob = F.softmax(prob) # probablitiyのacitivation
+        prob = F.transpose(prob, (0, 2, 1, 3, 4))
 
-        return x, y, w, h, conf
+        # x, y, w, hを絶対座標へ変換
+        x_shift = Variable(np.broadcast_to(np.arange(grid_w, dtype=np.float32), x.shape))
+        y_shift = Variable(np.broadcast_to(np.arange(grid_h, dtype=np.float32).reshape(grid_h, 1), y.shape))
+        w_anchor = Variable(np.broadcast_to(np.reshape(np.array(self.anchors, dtype=np.float32)[:, 0], (self.predictor.n_boxes, 1, 1, 1)), w.shape))
+        h_anchor = Variable(np.broadcast_to(np.reshape(np.array(self.anchors, dtype=np.float32)[:, 1], (self.predictor.n_boxes, 1, 1, 1)), h.shape))
+        x_shift.to_gpu(), y_shift.to_gpu(), w_anchor.to_gpu(), h_anchor.to_gpu()
+        box_x = (x + x_shift) / grid_w * input_w
+        box_y = (y + y_shift) / grid_h * input_h
+        box_w = F.exp(w) * w_anchor / grid_w * input_w
+        box_h = F.exp(h) * h_anchor / grid_h * input_h
+
+        return box_x, box_y, box_w, box_h, conf, prob
