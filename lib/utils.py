@@ -48,6 +48,17 @@ class Box():
         self.w = w
         self.h = h
 
+    def int_left_top(self):
+        half_width = self.w / 2
+        half_height = self.h / 2
+        return (int(round(self.x - half_width)), int(round(self.y - half_height)))
+
+    def int_right_bottom(self):
+        half_width = self.w / 2
+        half_height = self.h / 2
+        return (int(round(self.x + half_width)), int(round(self.y + half_height)))
+
+
 # 2本の線の情報を受取り、被ってる線分の長さを返す。あくまで線分
 def overlap(x1, len1, x2, len2):
     len1_half = len1/2
