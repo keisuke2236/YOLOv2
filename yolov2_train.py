@@ -18,13 +18,20 @@ initial_weight_file = "./backup/partial.model"
 backup_path = "backup"
 backup_file = "%s/backup.model" % (backup_path)
 batch_size = 16
-max_batches = 10000
-learning_rate = 0.01
+max_batches = 30000
+learning_rate = 1e-5
+learning_schedules = { 
+    "0"    : 1e-5,
+    "500"  : 1e-4,
+    "10000": 1e-5,
+    "20000": 1e-6 
+}
+
 lr_decay_power = 4
 momentum = 0.9
 weight_decay = 0.005
 n_classes = 10
-n_boxes = 2
+n_boxes = 5
 
 # load dataset
 with open(train_file, "r") as f:
@@ -36,7 +43,7 @@ with open(label_file, "r") as f:
 x_train = []
 t_train = [] # normal label
 print("loading image datasets...")
-for image_file in image_files:
+for image_file in image_files[:100]:
     img = cv2.imread(image_file)
     img = cv2.resize(img, (input_height, input_width))
     img = np.asarray(img, dtype=np.float32) / 255.0
@@ -59,50 +66,46 @@ x_train = np.array(x_train)
 # load model
 print("loading initial model...")
 yolov2 = YOLOv2(n_classes=n_classes, n_boxes=n_boxes)
-#if os.path.isfile(initial_weight_file):
-#    serializers.load_hdf5(initial_weight_file, yolov2) # load saved model
 model = YOLOv2Predictor(yolov2)
-serializers.load_hdf5(backup_file, model)
+serializers.load_hdf5(initial_weight_file, model)
 
 model.predictor.train = True
 model.predictor.finetune = False
-
-if hasattr(cuda, "cupy"):
-    cuda.get_device(0).use()
-    model.to_gpu() # for gpu
+cuda.get_device(0).use()
+model.to_gpu()
 
 optimizer = optimizers.MomentumSGD(lr=learning_rate, momentum=momentum)
 optimizer.use_cleargrads()
 optimizer.setup(model)
-optimizer.add_hook(chainer.optimizer.WeightDecay(weight_decay))
+#optimizer.add_hook(chainer.optimizer.WeightDecay(weight_decay))
 
 # start to train
 print("start training")
 for batch in range(max_batches):
+    if str(batch) in learning_schedules:
+        optimizer.lr = learning_schedules[str(batch)]
+
     batch_mask = np.random.choice(len(x_train), batch_size)
-    #batch_mask = np.array([1, 2, 3, 4, 5])
     x = Variable(x_train[batch_mask])
     t = np.array(t_train)[batch_mask]
-    if hasattr(cuda, "cupy"):
-        x.to_gpu() # for gpu
+    x.to_gpu()
 
     # forward
     loss = model(x, t)
-    print(batch, loss.data)
-    print("///////////////////////////")
+    print(batch, optimizer.lr, loss.data)
+    print("/////////////////////////////////////")
 
+    # backward and optimize
     optimizer.zero_grads()
     loss.backward()
-
-    #optimizer.lr = learning_rate * (1 - batch / max_batches) ** lr_decay_power # Polynomial decay learning rate
     optimizer.update()
 
     # save model
-    if (batch+1) % 100 == 0:
+    if (batch+1) % 500 == 0:
         model_file = "%s/%s.model" % (backup_path, batch+1)
         print("saving model to %s" % (model_file))
         serializers.save_hdf5(model_file, model)
         serializers.save_hdf5(backup_file, model)
 
-print("saving model to %s/final.model" % (backup_path))
-serializers.save_hdf5("%s/final.model" % (backup_path), model)
+print("saving model to %s/yolov2_final.model" % (backup_path))
+serializers.save_hdf5("%s/yolov2_final.model" % (backup_path), model)
