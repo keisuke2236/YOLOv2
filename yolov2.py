@@ -81,8 +81,7 @@ class YOLOv2(Chain):
             conv21 = L.Convolution2D(3072, 1024, ksize=3, stride=1, pad=1, nobias=True),
             bn21   = L.BatchNormalization(1024, use_beta=False),
             bias21 = L.Bias(shape=(1024,)),
-            #conv22 = L.Convolution2D(1024, n_boxes * (n_classes + 5), ksize=1, stride=1, pad=0),
-            conv22 = L.Convolution2D(1024, 10, ksize=1, stride=1, pad=0),
+            conv22 = L.Convolution2D(1024, n_boxes * (5 + n_classes), ksize=1, stride=1, pad=0),
         )
         self.train = False
         self.finetune = False
@@ -123,118 +122,149 @@ class YOLOv2(Chain):
         h = F.leaky_relu(self.bias21(self.bn21(self.conv21(h), test=not self.train, finetune=self.finetune)), slope=0.1)
         h = self.conv22(h)
 
-        '''
-        # reshape
-        batch_size, input_channel, input_height, input_width = h.shape
-        h = F.reshape(F.transpose(h, (0, 2, 3, 1)), (batch_size, input_height, input_width, self.n_boxes, -1))
-        x, y, w, h, conf, categories = F.split_axis(h, (1, 2, 3, 4, 5), axis=4)
-
-        return x, y, w, h, conf, categories
-        '''
-
         return h
-        #h = F.average_pooling_2d(h, h.data.shape[-1], stride=1, pad=0)
-        #y = F.reshape(h, (1, -1)) 
-        #return y
 
 class YOLOv2Predictor(Chain):
     def __init__(self, predictor):
         super(YOLOv2Predictor, self).__init__(predictor=predictor)
-        #self.anchors = np.array([[2.12, 4.04], [3.04, 5.12], [4.08, 2.68], [5.36, 5.53], [3.69, 6.08]])
-        self.anchors = np.array([[4.08, 2.68], [3.04, 5.12]])
+        self.anchors = [[5.375, 5.03125], [5.40625, 4.6875], [2.96875, 2.53125], [2.59375, 2.78125], [1.9375, 3.25]]
+        self.thresh = 0.6
+        self.seen = 0
+        self.unstable_seen = 5000
 
-    def __call__(self, x, t):
-        '''
-        x, y, w, h, conf, categories = self.predictor(x)
-        batch_size, grid_h, grid_w, n_boxes, _ = x.shape  
-
-
-        # process loss
-        categories = F.transpose(F.softmax(F.transpose(categories, (0, 4, 1, 2, 3))), (0, 2, 3, 4, 1)) # softmax(categories)
-
-        t_categories = categories.data.copy()
-        for batch in range(batch_size):
-            t_categories[batch, :, :, :, :] = 0
-            t_categories[batch, :, :, :, t[batch][0]["label"]] = 1
-
-            print(t[batch][0]["one_hot_label"])
-            print(categories[batch][0][0][0].data)
-            print(categories[batch][0][0][1].data)
-            print(categories[batch][10][0][1].data)
-        '''
+    def __call__(self, input_x, t):
+        output = self.predictor(input_x)
+        batch_size, _, grid_h, grid_w = output.shape
+        self.seen += batch_size
+        x, y, w, h, conf, prob = F.split_axis(F.reshape(output, (batch_size, self.predictor.n_boxes, self.predictor.n_classes+5, grid_h, grid_w)), (1, 2, 3, 4, 5), axis=2)
+        x = F.sigmoid(x) # xのactivation
+        y = F.sigmoid(y) # yのactivation
+        conf = F.sigmoid(conf) # confのactivation
+        prob = F.transpose(prob, (0, 2, 1, 3, 4))
+        prob = F.softmax(prob) # probablitiyのacitivation
 
 
-        '''
-        #conf = F.sigmoid(conf) # sigmoid(conf)
-        #x = F.sigmoid(x)
-        #y = F.sigmoid(y)
-        #w = F.exp(w)
-        #h = F.exp(h)
+        # 教師データ作成
+        tw = np.zeros(w.shape, dtype=np.float32) # wとhが0になるように学習(e^wとe^hは1に近づく -> 担当するbboxの倍率1)
+        th = np.zeros(h.shape, dtype=np.float32)
+        tx = np.tile(0.5, x.shape).astype(np.float32) # 活性化後のxとyが0.5になるように学習()
+        ty = np.tile(0.5, y.shape).astype(np.float32)
 
-        #compute best anchor in the grid which truth center is in, then strenthen category
-        t_categories = categories.data.copy()
-        abs_anchors = self.anchors / np.array([grid_w, grid_h])
-        for batch in range(batch_size):
-            for object_index in range(len(t[batch])):
-                truth_box = t[batch][object_index]
-                truth_w = int(float(truth_box["x"]) * grid_w)
-                truth_h = int(float(truth_box["y"]) * grid_h)
-                truth_n = 0
-                best_iou = 0.0
-                for anchor_index, abs_anchor in enumerate(abs_anchors):
-                    iou = box_iou(Box(0, 0, float(truth_box["w"]), float(truth_box["h"])), Box(0, 0, abs_anchor[0], abs_anchor[1]))
-                    if best_iou < iou:
-                        best_iou = iou
-                        truth_n = anchor_index
+        if self.seen < self.unstable_seen: # centerの存在しないbbox誤差学習スケールは基本0.1
+            box_learning_scale = np.tile(0.1, x.shape).astype(np.float32)
+        else:
+            box_learning_scale = np.tile(0, x.shape).astype(np.float32)
 
-                t_categories[batch][truth_h][truth_w][truth_n] = 0
-                t_categories[batch][truth_h][truth_w][truth_n][truth_box["label"]] = 1
-                print(batch, truth_h, truth_w, truth_n)
-                print(categories[batch][truth_h][truth_w][truth_n].data)
-                print(truth_box["one_hot_label"])
+        tconf = np.zeros(conf.shape, dtype=np.float32) # confidenceのtruthは基本0、iouがthresh以上のものは学習しない、ただしobjectの存在するgridのbest_boxのみ真のIOUに近づかせる
+        conf_learning_scale = np.tile(0.1, conf.shape).astype(np.float32)
 
-        t_categories = Variable(t_categories)
-        t_categories.to_gpu()
-
-        loss = F.sum(((categories - t_categories) ** 2))
-        #loss = sum_of_squared_error(categories, t_categories)
-        '''
+        tprob = prob.data.copy() # best_anchor以外は学習させない(自身との二乗和誤差 = 0)
         
+        # 全bboxとtruthのiouを計算(batch単位で計算する)
+        x_shift = Variable(np.broadcast_to(np.arange(grid_w, dtype=np.float32), x.shape[1:]))
+        y_shift = Variable(np.broadcast_to(np.arange(grid_h, dtype=np.float32).reshape(grid_h, 1), y.shape[1:]))
+        w_anchor = Variable(np.broadcast_to(np.reshape(np.array(self.anchors, dtype=np.float32)[:, 0], (self.predictor.n_boxes, 1, 1, 1)), w.shape[1:]))
+        h_anchor = Variable(np.broadcast_to(np.reshape(np.array(self.anchors, dtype=np.float32)[:, 1], (self.predictor.n_boxes, 1, 1, 1)), h.shape[1:]))
+        x_shift.to_gpu(), y_shift.to_gpu(), w_anchor.to_gpu(), h_anchor.to_gpu()
+        best_ious = []
+        for batch in range(batch_size):
+            n_truth_boxes = len(t[batch])
+            box_x = (x[batch] + x_shift) / grid_w
+            box_y = (y[batch] + y_shift) / grid_h
+            box_w = F.exp(w[batch]) * w_anchor / grid_w
+            box_h = F.exp(h[batch]) * h_anchor / grid_h
 
-        y = F.softmax(self.predictor(x))
-        t_categories = y.data.copy()
+            ious = []
+            for truth_index in range(n_truth_boxes):
+                truth_box_x = Variable(np.broadcast_to(np.array(t[batch][truth_index]["x"], dtype=np.float32), box_x.shape))
+                truth_box_y = Variable(np.broadcast_to(np.array(t[batch][truth_index]["y"], dtype=np.float32), box_y.shape))
+                truth_box_w = Variable(np.broadcast_to(np.array(t[batch][truth_index]["w"], dtype=np.float32), box_w.shape))
+                truth_box_h = Variable(np.broadcast_to(np.array(t[batch][truth_index]["h"], dtype=np.float32), box_h.shape))
+                truth_box_x.to_gpu(), truth_box_y.to_gpu(), truth_box_w.to_gpu(), truth_box_h.to_gpu()
+                ious.append(multi_box_iou(Box(box_x, box_y, box_w, box_h), Box(truth_box_x, truth_box_y, truth_box_w, truth_box_h)).data.get())  
+            ious = np.array(ious)
+            best_ious.append(np.max(ious, axis=0))
+        best_ious = np.array(best_ious)
 
-        batch_size, n_categories, grid_h, grid_w = y.shape
+        # 一定以上のiouを持つanchorに対しては、confを0に下げないようにする(truthの周りのgridはconfをそのまま維持)。
+        tconf[best_ious > self.thresh] = conf.data.get()[best_ious > self.thresh]
+        conf_learning_scale[best_ious > self.thresh] = 0
+
+        # objectの存在するanchor boxのみ個別修正
+        abs_anchors = self.anchors / np.array([grid_w, grid_h])
         for batch in range(batch_size):
             truth_box = t[batch][0]
             truth_w = int(float(truth_box["x"]) * grid_w)
             truth_h = int(float(truth_box["y"]) * grid_h)
-            t_categories[batch, :, truth_h, truth_w] = 0
-            t_categories[batch, int(truth_box["label"]), truth_h, truth_w] = 1
+            truth_n = 0
+            best_iou = 0.0
+            for anchor_index, abs_anchor in enumerate(abs_anchors):
+                iou = box_iou(Box(0, 0, float(truth_box["w"]), float(truth_box["h"])), Box(0, 0, abs_anchor[0], abs_anchor[1]))
+                if best_iou < iou:
+                    best_iou = iou
+                    truth_n = anchor_index
 
-            maps = F.transpose(y[batch], (1, 2, 0)).data
-            for maps_h in maps:
-                for maps_w in maps_h:
-                    print(np.argmax(maps_w), end=' ')
-                print("")
+            # objectの存在するanchorについて、centerを0.5ではなく、真の座標に近づかせる。anchorのスケールを1ではなく真のスケールに近づかせる。学習スケールを1にする。
+            box_learning_scale[batch, truth_n, :, truth_h, truth_w] = 1.0 
+            tx[batch, truth_n, :, truth_h, truth_w] = float(truth_box["x"]) * grid_w - truth_w 
+            ty[batch, truth_n, :, truth_h, truth_w] = float(truth_box["y"]) * grid_h - truth_h
+            tw[batch, truth_n, :, truth_h, truth_w] = np.log(float(truth_box["w"]) / abs_anchors[truth_n][0])
+            th[batch, truth_n, :, truth_h, truth_w] = np.log(float(truth_box["h"]) / abs_anchors[truth_n][1])
+            tprob[batch, :, truth_n, truth_h, truth_w] = 0
+            tprob[batch, int(truth_box["label"]), truth_n, truth_h, truth_w] = 1
 
-            print(truth_h, truth_w)
-            print(y[batch, :,  truth_h, truth_w].data)
-            print(truth_box["one_hot_label"])
-            #print(truth_w, truth_h)
+            # IOUの観測
+            full_truth_box = Box(float(truth_box["x"]), float(truth_box["y"]), float(truth_box["w"]), float(truth_box["h"]))
+            predicted_box = Box(
+                (x[batch][truth_n][0][truth_h][truth_w].data.get() + truth_w) / grid_w, 
+                (y[batch][truth_n][0][truth_h][truth_w].data.get() + truth_h) / grid_h,
+                np.exp(w[batch][truth_n][0][truth_h][truth_w].data.get()) * abs_anchors[truth_n][0],
+                np.exp(h[batch][truth_n][0][truth_h][truth_w].data.get()) * abs_anchors[truth_n][1]
+            )
+            predicted_iou = box_iou(full_truth_box, predicted_box)
+            tconf[batch, truth_n, :, truth_h, truth_w] = predicted_iou
+            conf_learning_scale[batch, truth_n, :, truth_h, truth_w] = 10.0
 
-        t_categories = Variable(t_categories)
-        t_categories.to_gpu()
+            # debug prints
+            maps = F.transpose(prob[batch], (2, 3, 1, 0)).data
+            print("best confidences of each grid:")
+            for i in range(grid_h):
+                for j in range(grid_w):
+                    print("%2d" % (int(conf[batch, :, :, i, j].data.max() * 100)), end=" ")
+                print("     ", end="")
+                for j in range(grid_w):
+                    print(maps[i][j][int(maps[i][j].max(axis=1).argmax())].argmax(), end=" ")
+                print()
 
+            print(x[batch, truth_n, :, truth_h, truth_w].data, y[batch, truth_n, :, truth_h, truth_w].data, w[batch, truth_n, :, truth_h, truth_w].data, h[batch, truth_n, :, truth_h, truth_w].data)
+            print(tx[batch, truth_n, :, truth_h, truth_w], ty[batch, truth_n, :, truth_h, truth_w], tw[batch, truth_n, :, truth_h, truth_w], th[batch, truth_n, :, truth_h, truth_w])
+            print("best default iou: %.2f   predicted iou: %.2f   confidence: %.2f   class: %s" % (best_iou, predicted_iou, conf[batch][truth_n][0][truth_h][truth_w].data, t[batch][0]["label"]))
+        print("seen = %d" % self.seen)
 
-        #loss = sum_of_squared_error(y, t_categories)
-        #loss = F.sum(((categories - t_categories) ** 2))
-        loss = F.mean_squared_error(y, t_categories)
+        tx, ty, tw, th, tconf, tprob = Variable(tx), Variable(ty), Variable(tw), Variable(th), Variable(tconf), Variable(tprob)
+        box_learning_scale, conf_learning_scale = Variable(box_learning_scale), Variable(conf_learning_scale)
+        tx.to_gpu(), ty.to_gpu(), tw.to_gpu(), th.to_gpu(), tconf.to_gpu(), tprob.to_gpu()
+        box_learning_scale.to_gpu()
+        conf_learning_scale.to_gpu()
 
-
+        x_loss = F.sum((tx - x) ** 2 * box_learning_scale) / 2
+        y_loss = F.sum((ty - y) ** 2 * box_learning_scale) / 2
+        w_loss = F.sum((tw - w) ** 2 * box_learning_scale) / 2
+        h_loss = F.sum((th - h) ** 2 * box_learning_scale) / 2
+        c_loss = F.sum((tconf - conf) ** 2 * conf_learning_scale) / 2
+        p_loss = F.sum((tprob - prob) ** 2) / 2
+        loss = x_loss + y_loss + w_loss + h_loss + c_loss + p_loss
+        print("x_loss: %f  y_loss: %f  w_loss: %f  h_loss: %f  c_loss: %f   p_loss: %f" % 
+            (F.sum(x_loss).data, F.sum(y_loss).data, F.sum(w_loss).data, F.sum(h_loss).data, F.sum(c_loss).data, F.sum(p_loss).data)
+        )
         return loss
 
+    def predict(self, input_x):
+        output = self.predictor(input_x)
+        batch_size, _, grid_h, grid_w = output.shape
+        x, y, w, h, conf = F.split_axis(F.reshape(output, (batch_size, self.predictor.n_boxes, 5, grid_h, grid_w)), (1, 2, 3, 4), axis=2)
+        x = F.sigmoid(x) # xのactivation
+        y = F.sigmoid(y) # yのactivation
+        conf = F.sigmoid(conf) # confのactivation
 
-    def predict(self, x):
-        y = self.predictor(x)
-        return F.softmax(y)
+        return x, y, w, h, conf
