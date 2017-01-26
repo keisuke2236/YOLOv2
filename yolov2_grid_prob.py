@@ -155,13 +155,18 @@ class YOLOv2GridProbPredictor(Chain):
 
             # debug prints
             maps = F.transpose(y[batch], (2, 3, 1, 0)).data
+            print("best conditional probability and class for each grid:")
             for maps_h in maps:
                 for maps_w in maps_h:
-                    print(maps_w[int(maps_w.max(axis=1).argmax())].argmax(), end=' ')
+                    print("%2d" % (maps_w[int(maps_w.max(axis=1).argmax())].argmax()), end=' ')
+                print("     ", end="")
+                for maps_w in maps_h:
+                    print("%2d" % (maps_w[int(maps_w.max(axis=1).argmax())].max()*99), end=' ')
                 print("")
 
             print(y[batch, :, truth_n, truth_h, truth_w].data)
             print(truth_box["one_hot_label"])
+            print("-------------------------------")
 
         t_categories = Variable(t_categories)
         t_categories.to_gpu()

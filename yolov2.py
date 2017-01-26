@@ -129,7 +129,7 @@ class YOLOv2Predictor(Chain):
         super(YOLOv2Predictor, self).__init__(predictor=predictor)
         self.anchors = [[5.375, 5.03125], [5.40625, 4.6875], [2.96875, 2.53125], [2.59375, 2.78125], [1.9375, 3.25]]
         self.thresh = 0.6
-        self.seen = 0
+        self.seen = 3000
         self.unstable_seen = 5000
 
     def __call__(self, input_x, t):
@@ -227,13 +227,16 @@ class YOLOv2Predictor(Chain):
 
             # debug prints
             maps = F.transpose(prob[batch], (2, 3, 1, 0)).data
-            print("best confidences of each grid:")
+            print("best confidences of each grid:               best conditional probability and class for each grid:")
             for i in range(grid_h):
                 for j in range(grid_w):
                     print("%2d" % (int(conf[batch, :, :, i, j].data.max() * 100)), end=" ")
                 print("     ", end="")
                 for j in range(grid_w):
-                    print(maps[i][j][int(maps[i][j].max(axis=1).argmax())].argmax(), end=" ")
+                    print("%2d" % (maps[i][j][int(maps[i][j].max(axis=1).argmax())].argmax()), end=" ")
+                print("     ", end="")
+                for j in range(grid_w):
+                    print("%2d" % (maps[i][j][int(maps[i][j].max(axis=1).argmax())].max()*100), end=" ")
                 print()
 
             print(x[batch, truth_n, :, truth_h, truth_w].data, y[batch, truth_n, :, truth_h, truth_w].data, w[batch, truth_n, :, truth_h, truth_w].data, h[batch, truth_n, :, truth_h, truth_w].data)

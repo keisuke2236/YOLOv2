@@ -8,12 +8,12 @@ from chainer import serializers, optimizers, Variable, cuda
 import chainer.functions as F
 from yolov2 import *
 from lib.utils import *
+from lib.image_generator import *
 
 # hyper parameters
 input_height, input_width = (416, 416)
-train_file = "../dataset/yolov2_fruits_dataset/train.txt"
-label_file = "../dataset/yolov2_fruits_dataset/label.txt"
-truth_path = "../dataset/yolov2_fruits_dataset/labels/"
+item_path = "./items"
+background_path = "./backgrounds"
 initial_weight_file = "./backup/partial.model"
 backup_path = "backup"
 backup_file = "%s/backup.model" % (backup_path)
@@ -22,7 +22,7 @@ max_batches = 30000
 learning_rate = 1e-5
 learning_schedules = { 
     "0"    : 1e-5,
-    "500"  : 1e-4,
+    "1000"  : 1e-4,
     "10000": 1e-5,
     "20000": 1e-6 
 }
@@ -33,35 +33,9 @@ weight_decay = 0.005
 n_classes = 10
 n_boxes = 5
 
-# load dataset
-with open(train_file, "r") as f:
-    image_files = f.read().strip().split("\n")
-
-with open(label_file, "r") as f:
-    labels = f.read().strip().split("\n")
-
-x_train = []
-t_train = [] # normal label
-print("loading image datasets...")
-for image_file in image_files[:100]:
-    img = cv2.imread(image_file)
-    img = cv2.resize(img, (input_height, input_width))
-    img = np.asarray(img, dtype=np.float32) / 255.0
-    img = img.transpose(2, 0, 1)
-    x_train.append(img)
-
-    groundtruth_file = truth_path + image_file.split("/")[-1].split(".")[0] + ".txt"
-    with open(groundtruth_file, "r") as f:
-        truth_objects = f.read().strip().split("\n")
-        truth_info = []
-        for truth_object in truth_objects:
-            one_hot_label = np.zeros(len(labels)) # one hot label
-            label, x, y, w, h = truth_object.split(" ")
-            one_hot_label[label] = 1
-            truth_info.append({"label": label, "one_hot_label": one_hot_label, "x": x, "y": y, "h": h, "w": w})
-        t_train.append(truth_info)
-
-x_train = np.array(x_train)
+# load image generator
+print("loading image generator...")
+generator = ImageGenerator(item_path, background_path)
 
 # load model
 print("loading initial model...")
@@ -85,9 +59,21 @@ for batch in range(max_batches):
     if str(batch) in learning_schedules:
         optimizer.lr = learning_schedules[str(batch)]
 
-    batch_mask = np.random.choice(len(x_train), batch_size)
-    x = Variable(x_train[batch_mask])
-    t = np.array(t_train)[batch_mask]
+    # generate sample
+    x, t = generator.generate_samples(
+        n_samples=16,
+        n_items=1,
+        crop_width=416,
+        crop_height=416,
+        min_item_scale=1,
+        max_item_scale=3,
+        rand_angle=15,
+        minimum_crop=0.8,
+        delta_hue=0.01,
+        delta_sat_scale=0.5,
+        delta_val_scale=0.5
+    )
+    x = Variable(x)
     x.to_gpu()
 
     # forward
