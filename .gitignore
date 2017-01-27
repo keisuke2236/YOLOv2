@@ -3,3 +3,4 @@ backup
 sample_images/*.jpg
 *result.jpg
 *.avi
+*.model

@@ -54,11 +54,33 @@ class Box():
         half_height = self.h / 2
         return (int(round(self.x - half_width)), int(round(self.y - half_height)))
 
+    def left_top(self):
+        half_width = self.w / 2
+        half_height = self.h / 2
+        return [self.x - half_width, self.y - half_height]
+
     def int_right_bottom(self):
         half_width = self.w / 2
         half_height = self.h / 2
         return (int(round(self.x + half_width)), int(round(self.y + half_height)))
 
+    def right_bottom(self):
+        half_width = self.w / 2
+        half_height = self.h / 2
+        return [self.x + half_width, self.y + half_height]
+
+    def crop_region(self, h, w):
+        left, top = self.left_top()
+        right, bottom = self.right_bottom()
+        left = max(0, left)
+        top = max(0, top)
+        right = min(w, right)
+        bottom = min(h, bottom)
+        self.w = right - left
+        self.h = bottom - top
+        self.x = (right + left) / 2
+        self.y = (bottom + top) / 2
+        return self
 
 # 2本の線の情報を受取り、被ってる線分の長さを返す。あくまで線分
 def overlap(x1, len1, x2, len2):
@@ -144,3 +166,19 @@ def random_hsv_image(bgr_image, delta_hue, delta_sat_scale, delta_val_scale):
     hsv_image = hsv_image.astype(np.uint8)
     bgr_image = cv2.cvtColor(hsv_image, cv2.COLOR_HSV2BGR)
     return bgr_image
+
+# non maximum suppression
+def nms(predicted_results, iou_thresh):
+    nms_results = []
+    for i in range(len(predicted_results)):
+        overlapped = False
+        for j in range(i+1, len(predicted_results)):
+            if box_iou(predicted_results[i]["box"], predicted_results[j]["box"]) > iou_thresh:
+                overlapped = True
+                if predicted_results[i]["objectness"] > predicted_results[j]["objectness"]:
+                    temp = predicted_results[i]
+                    predicted_results[i] = predicted_results[j]
+                    predicted_results[j] = temp
+        if not overlapped:
+            nms_results.append(predicted_results[i])
+    return nms_results
