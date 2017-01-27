@@ -108,6 +108,38 @@ class ImageGenerator():
         for bg_file in self.bg_files:
             self.bgs.append(cv2.imread(bg_file))
 
+    def generate_random_animation(self, loop, bg_index, crop_width, crop_height, min_item_scale, max_item_scale):
+        frames = []
+        sampled_background = random_sampling(self.bgs[bg_index], crop_height, crop_width)
+        bg_height, bg_width, _ = sampled_background.shape
+        for i in range(loop):
+            class_id = np.random.randint(len(self.labels))
+            item = self.items[class_id]
+            item = scale_image(item, min_item_scale + np.random.rand() * (max_item_scale-min_item_scale))
+            item_height, item_width, _ = item.shape
+            edges = [-item_width, -item_height, bg_width+item_width, bg_height+item_height]
+            r = np.random.randint(2)
+            rand1 = np.random.randint(edges[r+2] + 2*edges[r])
+            rand2 = np.random.randint(edges[r+2] + 2*edges[r])
+            edges[r], edges[r+2] = rand1, rand2
+
+            r = np.random.randint(2)
+            start_point = (edges[r*2], edges[r*2+1])
+            end_point = (edges[r*2-2], edges[r*2-1])
+            w_distance = end_point[0] - start_point[0]
+            h_distance = end_point[1] - start_point[1]
+            animate_frames = np.random.randint(30) + 50
+            angle = np.random.rand() * 10 - 5
+            rotate_cnt = 0
+            for j in range(animate_frames):
+                rotate_cnt += 1
+                if rotate_cnt % 10 == 0:
+                    angle *= -1
+                item = rotate_image(item, angle)
+                frame = overlay(sampled_background, item, start_point[0] + int(w_distance * j / animate_frames), start_point[1] + int(h_distance * j / animate_frames))
+                frames.append(frame[:, :, :3])
+        return frames
+
     def generate_samples(self, n_samples, n_items, crop_width, crop_height, min_item_scale, max_item_scale, rand_angle, minimum_crop, delta_hue, delta_sat_scale, delta_val_scale):
         x = []
         t = []
