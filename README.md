@@ -1,4 +1,4 @@
-# darknet19とYOLOv2（Chainerバージョン）
+# YOLOv2（Chainerバージョン）
 Joseph Redmonさんの論文はこちら：
 
 [You Only Look Once](https://arxiv.org/abs/1506.02640)
@@ -9,6 +9,28 @@ Joseph Redmonさんの論文はこちら：
 darknetのオリジナル実装はこちら：
 
 [darknet](http://pjreddie.com/)
+
+
+## 訓練済みYOLOv2モデルの実行
+yolov2学習済みweightsファイルをダウンロードする。
+
+```
+wget http://pjreddie.com/media/files/yolo.weights
+```
+
+以下のコマンドでweightsファイルをchainer用にパースする。
+
+```
+python yolov2_darknet_parser.py yolo.weights
+```
+
+以下のコマンドで好きな画像ファイルを指定して物体検出を行う。
+検出結果は`yolov2_result.jpg`に保存される。
+
+```
+python yolov2_darknet_predict.py data/person.jpg
+```
+
 
 
 ## darknet19

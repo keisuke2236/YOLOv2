@@ -82,3 +82,5 @@ for result in nms_results:
 
 print("save results to yolov2_result.jpg")
 cv2.imwrite("yolov2_result.jpg", orig_img)
+cv2.imshow("w", orig_img)
+cv2.waitKey()
