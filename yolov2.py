@@ -228,7 +228,7 @@ class YOLOv2Predictor(Chain):
 
             # debug prints
             maps = F.transpose(prob[batch], (2, 3, 1, 0)).data
-            print("best confidences of each grid:               best conditional probability and class for each grid:")
+            print("best confidences and best conditional probability and predicted class of each grid:")
             for i in range(grid_h):
                 for j in range(grid_w):
                     print("%2d" % (int(conf[batch, :, :, i, j].data.max() * 100)), end=" ")
