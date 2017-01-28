@@ -17,58 +17,58 @@ class YOLOv2(Chain):
         super(YOLOv2, self).__init__(
             ##### common layers for both pretrained layers and yolov2 #####
             conv1  = L.Convolution2D(3, 32, ksize=3, stride=1, pad=1, nobias=True),
-            bn1    = L.BatchNormalization(32, use_beta=False, eps=1e-5),
+            bn1    = L.BatchNormalization(32, use_beta=False, eps=2e-5),
             bias1  = L.Bias(shape=(32,)),
             conv2  = L.Convolution2D(32, 64, ksize=3, stride=1, pad=1, nobias=True),
-            bn2    = L.BatchNormalization(64, use_beta=False, eps=1e-5),
+            bn2    = L.BatchNormalization(64, use_beta=False, eps=2e-5),
             bias2  = L.Bias(shape=(64,)),
             conv3  = L.Convolution2D(64, 128, ksize=3, stride=1, pad=1, nobias=True),
-            bn3    = L.BatchNormalization(128, use_beta=False, eps=1e-5),
+            bn3    = L.BatchNormalization(128, use_beta=False, eps=2e-5),
             bias3  = L.Bias(shape=(128,)),
             conv4  = L.Convolution2D(128, 64, ksize=1, stride=1, pad=0, nobias=True),
-            bn4    = L.BatchNormalization(64, use_beta=False, eps=1e-5),
+            bn4    = L.BatchNormalization(64, use_beta=False, eps=2e-5),
             bias4  = L.Bias(shape=(64,)),
             conv5  = L.Convolution2D(64, 128, ksize=3, stride=1, pad=1, nobias=True),
-            bn5    = L.BatchNormalization(128, use_beta=False, eps=1e-5),
+            bn5    = L.BatchNormalization(128, use_beta=False, eps=2e-5),
             bias5  = L.Bias(shape=(128,)),
             conv6  = L.Convolution2D(128, 256, ksize=3, stride=1, pad=1, nobias=True),
-            bn6    = L.BatchNormalization(256, use_beta=False, eps=1e-5),
+            bn6    = L.BatchNormalization(256, use_beta=False, eps=2e-5),
             bias6  = L.Bias(shape=(256,)),
             conv7  = L.Convolution2D(256, 128, ksize=1, stride=1, pad=0, nobias=True),
-            bn7    = L.BatchNormalization(128, use_beta=False, eps=1e-5),
+            bn7    = L.BatchNormalization(128, use_beta=False, eps=2e-5),
             bias7  = L.Bias(shape=(128,)),
             conv8  = L.Convolution2D(128, 256, ksize=3, stride=1, pad=1, nobias=True),
-            bn8    = L.BatchNormalization(256, use_beta=False, eps=1e-5),
+            bn8    = L.BatchNormalization(256, use_beta=False, eps=2e-5),
             bias8  = L.Bias(shape=(256,)),
             conv9  = L.Convolution2D(256, 512, ksize=3, stride=1, pad=1, nobias=True),
-            bn9    = L.BatchNormalization(512, use_beta=False, eps=1e-5),
+            bn9    = L.BatchNormalization(512, use_beta=False, eps=2e-5),
             bias9  = L.Bias(shape=(512,)),
             conv10 = L.Convolution2D(512, 256, ksize=1, stride=1, pad=0, nobias=True),
-            bn10   = L.BatchNormalization(256, use_beta=False, eps=1e-5),
+            bn10   = L.BatchNormalization(256, use_beta=False, eps=2e-5),
             bias10 = L.Bias(shape=(256,)),
             conv11 = L.Convolution2D(256, 512, ksize=3, stride=1, pad=1, nobias=True),
-            bn11   = L.BatchNormalization(512, use_beta=False, eps=1e-5),
+            bn11   = L.BatchNormalization(512, use_beta=False, eps=2e-5),
             bias11 = L.Bias(shape=(512,)),
             conv12 = L.Convolution2D(512, 256, ksize=1, stride=1, pad=0, nobias=True),
-            bn12   = L.BatchNormalization(256, use_beta=False, eps=1e-5),
+            bn12   = L.BatchNormalization(256, use_beta=False, eps=2e-5),
             bias12 = L.Bias(shape=(256,)),
             conv13 = L.Convolution2D(256, 512, ksize=3, stride=1, pad=1, nobias=True),
-            bn13   = L.BatchNormalization(512, use_beta=False, eps=1e-5),
+            bn13   = L.BatchNormalization(512, use_beta=False, eps=2e-5),
             bias13 = L.Bias(shape=(512,)),
             conv14 = L.Convolution2D(512, 1024, ksize=3, stride=1, pad=1, nobias=True),
-            bn14   = L.BatchNormalization(1024, use_beta=False, eps=1e-5),
+            bn14   = L.BatchNormalization(1024, use_beta=False, eps=2e-5),
             bias14 = L.Bias(shape=(1024,)),
             conv15 = L.Convolution2D(1024, 512, ksize=1, stride=1, pad=0, nobias=True),
-            bn15   = L.BatchNormalization(512, use_beta=False, eps=1e-5),
+            bn15   = L.BatchNormalization(512, use_beta=False, eps=2e-5),
             bias15 = L.Bias(shape=(512,)),
             conv16 = L.Convolution2D(512, 1024, ksize=3, stride=1, pad=1, nobias=True),
-            bn16   = L.BatchNormalization(1024, use_beta=False, eps=1e-5),
+            bn16   = L.BatchNormalization(1024, use_beta=False, eps=2e-5),
             bias16 = L.Bias(shape=(1024,)),
             conv17 = L.Convolution2D(1024, 512, ksize=1, stride=1, pad=0, nobias=True),
-            bn17   = L.BatchNormalization(512, use_beta=False, eps=1e-5),
+            bn17   = L.BatchNormalization(512, use_beta=False, eps=2e-5),
             bias17 = L.Bias(shape=(512,)),
             conv18 = L.Convolution2D(512, 1024, ksize=3, stride=1, pad=1, nobias=True),
-            bn18   = L.BatchNormalization(1024, use_beta=False, eps=1e-5),
+            bn18   = L.BatchNormalization(1024, use_beta=False, eps=2e-5),
             bias18 = L.Bias(shape=(1024,)),
 
             ###### new layer
@@ -194,37 +194,37 @@ class YOLOv2Predictor(Chain):
         # objectの存在するanchor boxのみ、x、y、w、h、conf、probを個別修正
         abs_anchors = self.anchors / np.array([grid_w, grid_h])
         for batch in range(batch_size):
-            truth_box = t[batch][0]
-            truth_w = int(float(truth_box["x"]) * grid_w)
-            truth_h = int(float(truth_box["y"]) * grid_h)
-            truth_n = 0
-            best_iou = 0.0
-            for anchor_index, abs_anchor in enumerate(abs_anchors):
-                iou = box_iou(Box(0, 0, float(truth_box["w"]), float(truth_box["h"])), Box(0, 0, abs_anchor[0], abs_anchor[1]))
-                if best_iou < iou:
-                    best_iou = iou
-                    truth_n = anchor_index
+            for truth_box in t[batch]:
+                truth_w = int(float(truth_box["x"]) * grid_w)
+                truth_h = int(float(truth_box["y"]) * grid_h)
+                truth_n = 0
+                best_iou = 0.0
+                for anchor_index, abs_anchor in enumerate(abs_anchors):
+                    iou = box_iou(Box(0, 0, float(truth_box["w"]), float(truth_box["h"])), Box(0, 0, abs_anchor[0], abs_anchor[1]))
+                    if best_iou < iou:
+                        best_iou = iou
+                        truth_n = anchor_index
 
-            # objectの存在するanchorについて、centerを0.5ではなく、真の座標に近づかせる。anchorのスケールを1ではなく真のスケールに近づかせる。学習スケールを1にする。
-            box_learning_scale[batch, truth_n, :, truth_h, truth_w] = 1.0 
-            tx[batch, truth_n, :, truth_h, truth_w] = float(truth_box["x"]) * grid_w - truth_w 
-            ty[batch, truth_n, :, truth_h, truth_w] = float(truth_box["y"]) * grid_h - truth_h
-            tw[batch, truth_n, :, truth_h, truth_w] = np.log(float(truth_box["w"]) / abs_anchors[truth_n][0])
-            th[batch, truth_n, :, truth_h, truth_w] = np.log(float(truth_box["h"]) / abs_anchors[truth_n][1])
-            tprob[batch, :, truth_n, truth_h, truth_w] = 0
-            tprob[batch, int(truth_box["label"]), truth_n, truth_h, truth_w] = 1
+                # objectの存在するanchorについて、centerを0.5ではなく、真の座標に近づかせる。anchorのスケールを1ではなく真のスケールに近づかせる。学習スケールを1にする。
+                box_learning_scale[batch, truth_n, :, truth_h, truth_w] = 1.0 
+                tx[batch, truth_n, :, truth_h, truth_w] = float(truth_box["x"]) * grid_w - truth_w 
+                ty[batch, truth_n, :, truth_h, truth_w] = float(truth_box["y"]) * grid_h - truth_h
+                tw[batch, truth_n, :, truth_h, truth_w] = np.log(float(truth_box["w"]) / abs_anchors[truth_n][0])
+                th[batch, truth_n, :, truth_h, truth_w] = np.log(float(truth_box["h"]) / abs_anchors[truth_n][1])
+                tprob[batch, :, truth_n, truth_h, truth_w] = 0
+                tprob[batch, int(truth_box["label"]), truth_n, truth_h, truth_w] = 1
 
-            # IOUの観測
-            full_truth_box = Box(float(truth_box["x"]), float(truth_box["y"]), float(truth_box["w"]), float(truth_box["h"]))
-            predicted_box = Box(
-                (x[batch][truth_n][0][truth_h][truth_w].data.get() + truth_w) / grid_w, 
-                (y[batch][truth_n][0][truth_h][truth_w].data.get() + truth_h) / grid_h,
-                np.exp(w[batch][truth_n][0][truth_h][truth_w].data.get()) * abs_anchors[truth_n][0],
-                np.exp(h[batch][truth_n][0][truth_h][truth_w].data.get()) * abs_anchors[truth_n][1]
-            )
-            predicted_iou = box_iou(full_truth_box, predicted_box)
-            tconf[batch, truth_n, :, truth_h, truth_w] = predicted_iou
-            conf_learning_scale[batch, truth_n, :, truth_h, truth_w] = 10.0
+                # IOUの観測
+                full_truth_box = Box(float(truth_box["x"]), float(truth_box["y"]), float(truth_box["w"]), float(truth_box["h"]))
+                predicted_box = Box(
+                    (x[batch][truth_n][0][truth_h][truth_w].data.get() + truth_w) / grid_w, 
+                    (y[batch][truth_n][0][truth_h][truth_w].data.get() + truth_h) / grid_h,
+                    np.exp(w[batch][truth_n][0][truth_h][truth_w].data.get()) * abs_anchors[truth_n][0],
+                    np.exp(h[batch][truth_n][0][truth_h][truth_w].data.get()) * abs_anchors[truth_n][1]
+                )
+                predicted_iou = box_iou(full_truth_box, predicted_box)
+                tconf[batch, truth_n, :, truth_h, truth_w] = predicted_iou
+                conf_learning_scale[batch, truth_n, :, truth_h, truth_w] = 10.0
 
             # debug prints
             maps = F.transpose(prob[batch], (2, 3, 1, 0)).data
@@ -240,9 +240,8 @@ class YOLOv2Predictor(Chain):
                     print("%2d" % (maps[i][j][int(maps[i][j].max(axis=1).argmax())].max()*100), end=" ")
                 print()
 
-            print(x[batch, truth_n, :, truth_h, truth_w].data, y[batch, truth_n, :, truth_h, truth_w].data, w[batch, truth_n, :, truth_h, truth_w].data, h[batch, truth_n, :, truth_h, truth_w].data)
-            print(tx[batch, truth_n, :, truth_h, truth_w], ty[batch, truth_n, :, truth_h, truth_w], tw[batch, truth_n, :, truth_h, truth_w], th[batch, truth_n, :, truth_h, truth_w])
             print("best default iou: %.2f   predicted iou: %.2f   confidence: %.2f   class: %s" % (best_iou, predicted_iou, conf[batch][truth_n][0][truth_h][truth_w].data, t[batch][0]["label"]))
+            print("-------------------------------")
         print("seen = %d" % self.seen)
 
         # loss計算

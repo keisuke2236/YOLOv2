@@ -11,7 +11,7 @@ from lib.utils import *
 from lib.image_generator import *
 
 # hyper parameters
-input_height, input_width = (416, 416)
+train_sizes = [320, 352, 384, 416, 448]
 item_path = "./items"
 background_path = "./backgrounds"
 initial_weight_file = "./backup/partial.model"
@@ -58,13 +58,15 @@ print("start training")
 for batch in range(max_batches):
     if str(batch) in learning_schedules:
         optimizer.lr = learning_schedules[str(batch)]
+    if batch % 80 == 0:
+        input_width = input_height = train_sizes[np.random.randint(len(train_sizes))]
 
     # generate sample
     x, t = generator.generate_samples(
         n_samples=16,
-        n_items=1,
-        crop_width=416,
-        crop_height=416,
+        n_items=3,
+        crop_width=input_width,
+        crop_height=input_height,
         min_item_scale=1,
         max_item_scale=3,
         rand_angle=15,
@@ -78,7 +80,7 @@ for batch in range(max_batches):
 
     # forward
     loss = model(x, t)
-    print(batch, optimizer.lr, loss.data)
+    print("batch: %d     input size: %dx%d     learning rate: %f    loss: %f" % (batch, input_height, input_width, optimizer.lr, loss.data))
     print("/////////////////////////////////////")
 
     # backward and optimize
