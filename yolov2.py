@@ -130,7 +130,7 @@ class YOLOv2Predictor(Chain):
         super(YOLOv2Predictor, self).__init__(predictor=predictor)
         self.anchors = [[5.375, 5.03125], [5.40625, 4.6875], [2.96875, 2.53125], [2.59375, 2.78125], [1.9375, 3.25]]
         self.thresh = 0.6
-        self.seen = 3000
+        self.seen = 0
         self.unstable_seen = 5000
 
     def __call__(self, input_x, t):

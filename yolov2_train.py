@@ -22,7 +22,7 @@ max_batches = 30000
 learning_rate = 1e-5
 learning_schedules = { 
     "0"    : 1e-5,
-    "1000"  : 1e-4,
+    "500"  : 1e-4,
     "10000": 1e-5,
     "20000": 1e-6 
 }
