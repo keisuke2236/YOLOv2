@@ -16,7 +16,7 @@ loop = 10
 n_classes = 10
 n_boxes = 5
 detection_thresh = 0.5
-iou_thresh = 0.5
+iou_thresh = 0.3
 
 # load image generator
 print("loading image generator...")
