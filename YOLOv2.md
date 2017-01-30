@@ -7,11 +7,7 @@
 
 
 ## Gridごとにbounding box及びconfidenceを予測
-YOLOv2では、入力画像の大きさによって最終層の出力がn x nの特徴マップになるが、これは入力画像をn x nの大きさに分割した時のそれぞれのgridに対応する。
-
-各gridは、複数のanchorと呼ばれる一定のアスペクト比のbounding boxを持ち、YOLOv2では各anchorの中心座標(x, y)及び、幅と高さのスケール(w, h)を予測する。
-
-更に、各anchor boxはconfidenceと呼ばれるパラメータを持っていて、これはbox内に物体が存在する確率を表す。
+YOLOv2では、入力画像の大きさによって最終層の出力がn x nの特徴マップになるが、これは入力画像をn x nの大きさに分割した時のそれぞれのgridに対応する。各gridは、複数のanchorと呼ばれる一定のアスペクト比のbounding boxを持ち、YOLOv2では各anchorの中心座標(x, y)及び、幅と高さのスケール(w, h)を予測する。更に、各anchor boxはconfidenceと呼ばれるパラメータを持っていて、これはbox内に物体が存在する確率を表す。
 
 この図では各anchor boxの線の太さがconfidenceの高さを表し、最も太線の縦長いanchor boxは、そこに高確率でなにかしらの物体が存在する事を意味している。
 
@@ -69,9 +65,22 @@ YOLOv2では、入力画像の大きさによって最終層の出力がn x nの
 
 ## 高解像度と低解像度特徴マップの結合
 
+CNNでは層が深くなるに連れ特徴マップの解像度が落ちるので、より精確なanchor boxの座標予測をするために、YOLOv2では、解像度の高い層からサンプリングした特徴マップを解像度の低い層とチャンネル間で結合している。通常、特徴マップのサイズが合わないとチャンネル間で結合できないが、YOLOv2ではreorganizationという独自の手法を使って、1枚の高解像度の特徴マップを複数の低解像度の特徴マップに再編成する。下図の例では、4 x 4の1channelの特徴マップを、色ごとに別の特徴マップとして切り出し、2 x 2の4channelの低解像度特徴マップに変換する。
+
+<img src="data/reorg.png" width=320px>
+
+<img src="data/reorg_1.png" width=160px>
+<img src="data/reorg_4.png" width=160px>
+<img src="data/reorg_2.png" width=160px>
+<img src="data/reorg_3.png" width=160px>
+
+
+
 
 
 ## multi-scale training
+YOLOv2はFCN構造のため入力画像のサイズは可変。モデル構造をそのままで、学習時に複数サイズの画像を交互に入力する事でロバストなモデルに訓練する(入力画像の32 x 32ピクセルが特徴マップ上の1ピクセルに対応するので、入力画像の幅と高さは必ず32の倍数にする)。
+
 <img src="data/320x320.png" width=160px>
 <img src="data/352x352.png" width=176px>
 <img src="data/384x384.png" width=192px>
