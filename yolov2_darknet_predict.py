@@ -12,20 +12,20 @@ parser.add_argument('path', help="画像ファイルへのパスを指定")
 args = parser.parse_args()
 
 # hyper parameters
-input_height, input_width = (416, 416)
+#input_height, input_width = (416, 416)
 weight_file = "./yolov2_darknet.model"
 image_file = args.path
 n_classes = 80
 n_boxes = 5
-detection_thresh = 0.2
+detection_thresh = 0.5
 iou_thresh = 0.5
 anchors = [[0.738768, 0.874946], [2.42204, 2.65704], [4.30971, 7.04493], [10.246, 4.59428], [12.6868, 11.8741]]
 labels = ["person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]
 
 # read image
 print("loading image...")
-orig_img = cv2.imread(image_file)
-orig_img = cv2.resize(orig_img, (input_height, input_width))
+orig_img = reshape_to_yolo_size(cv2.imread(image_file))
+input_height, input_width, _ = orig_img.shape
 img = cv2.cvtColor(orig_img, cv2.COLOR_BGR2RGB)
 img = np.asarray(orig_img, dtype=np.float32) / 255.0
 img = img.transpose(2, 0, 1)
