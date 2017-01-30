@@ -182,3 +182,25 @@ def nms(predicted_results, iou_thresh):
         if not overlapped:
             nms_results.append(predicted_results[i])
     return nms_results
+
+# reshape to yolo size
+def reshape_to_yolo_size(img):
+    input_height, input_width, _ = img.shape
+    min_pixel = 320
+    #max_pixel = 608
+    max_pixel = 448
+
+    min_edge = np.minimum(input_width, input_height)
+    if min_edge < min_pixel:
+        input_width *= min_pixel / min_edge
+        input_height *= min_pixel / min_edge
+    max_edge = np.maximum(input_width, input_height)
+    if max_edge > max_pixel:
+        input_width *= max_pixel / max_edge
+        input_height *= max_pixel / max_edge
+
+    input_width = int(input_width / 32 + round(input_width % 32 / 32)) * 32
+    input_height = int(input_height / 32 + round(input_height % 32 / 32)) * 32
+    img = cv2.resize(img, (input_height, input_width))
+
+    return img
