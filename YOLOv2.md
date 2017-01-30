@@ -75,4 +75,8 @@ YOLOv2では、入力画像の大きさによって最終層の出力がn x nの
 <img src="data/320x320.png" width=160px>
 <img src="data/352x352.png" width=176px>
 <img src="data/384x384.png" width=192px>
+<img src="data/416x416.png" width=208px>
 
+<img src="data/448x448.png" width=224px>
+<img src="data/480x480.png" width=240px>
+<img src="data/512x512.png" width=256px>
