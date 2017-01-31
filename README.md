@@ -12,7 +12,7 @@ darknetのオリジナル実装はこちら：
 
 
 ## 訓練済みYOLOv2モデルの実行
-<img src="data/people_prediction.jpg">
+<img src="data/dance.gif">
 
 yolov2学習済みweightsファイルをダウンロードする。
 
