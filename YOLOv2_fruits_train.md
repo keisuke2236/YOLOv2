@@ -1,5 +1,7 @@
 # YOLOv2によるフルーツデータセットの訓練
 
+元ネタ:<a href="http://qiita.com/ashitani/items/566cf9234682cb5f2d60">YOLOv2でPPAP</a>
+
 <img src="data/output.gif">
 
 YOLOv2によるフルールデータセットの訓練手順を以下に示す(なお、ここで実装されたコードは全てcupyを使う事を前提としている)
