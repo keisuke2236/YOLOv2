@@ -12,6 +12,8 @@ darknetのオリジナル実装はこちら：
 
 
 ## 訓練済みYOLOv2モデルの実行
+<img src="data/prediction_result.jpg">
+
 yolov2学習済みweightsファイルをダウンロードする。
 
 ```
