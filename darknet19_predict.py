@@ -14,7 +14,7 @@ args = parser.parse_args()
 # hyper parameters
 input_height, input_width = (224, 224)
 weight_file = "./backup/darknet19_final.model"
-label_file = "../dataset/fruits_pretrain_dataset/label.txt"
+label_file = "./data/label.txt"
 image_file = args.path
 
 # read labels
