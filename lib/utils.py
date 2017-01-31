@@ -201,6 +201,6 @@ def reshape_to_yolo_size(img):
 
     input_width = int(input_width / 32 + round(input_width % 32 / 32)) * 32
     input_height = int(input_height / 32 + round(input_height % 32 / 32)) * 32
-    img = cv2.resize(img, (input_height, input_width))
+    img = cv2.resize(img, (input_width, input_height))
 
     return img
