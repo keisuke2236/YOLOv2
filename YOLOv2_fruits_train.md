@@ -4,6 +4,28 @@
 
 YOLOv2によるフルールデータセットの訓練手順を以下に示す(なお、ここで実装されたコードは全てcupyを使う事を前提としている)
 
+## フルーツデータセットからランダム画像を生成
+
+<img src="items/apple.png">
+<img src="items/banana.png">
+<img src="items/cherry.png">
+<img src="items/grape.png">
+<img src="items/peach.png">
+<img src="items/pear.png">
+<img src="items/persimmon.png">
+<img src="items/strawberry.png">
+<img src="items/watermelon.png">
+<img src="items/orange.png">
+
+以下のコマンドで、画像生成器を使って各種フルーツ画像と背景をランダムに合成した画像を表示する(訓練時にも同じ様に画像生成器を使ってbatchごとにランダムな教師データを生成する)。
+
+画像生成時には、HSV色空間のランダム変換、フルーツ画像のランダム回転、スケーリングを加えている。各パラメータは`image_generate.py`のコードを修正すれば変更できる。
+
+```
+python image_generate.py  
+```
+
+
 ## darknet19の訓練
 以下のコマンドでdarknet19のモデルの学習を行う。
 `setup.sh`は、必要なディレクトリを作成する初期化スクリプト。
@@ -13,7 +35,6 @@ YOLOv2によるフルールデータセットの訓練手順を以下に示す(�
 ./setup.sh
 python darknet19_train.py
 ```
-
 
 
 ## darknet19のテスト
