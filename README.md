@@ -11,9 +11,12 @@ darknetのオリジナル実装はこちら：
 [darknet](http://pjreddie.com/)
 
 
-## 訓練済みYOLOv2モデルの実行
-<img src="data/dance.gif">
+<img src="data/dance_short.gif">
 
+<img src="data/drive_short.gif">
+
+
+## 訓練済みYOLOv2モデルの実行
 
 yolov2学習済みweightsファイルをダウンロードする。
 
