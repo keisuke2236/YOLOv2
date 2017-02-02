@@ -66,8 +66,12 @@ for frame in animation:
             "probs": prob.transpose(1, 2, 3, 0)[detected_indices][i],
             "conf" : conf[detected_indices][i],
             "objectness": conf[detected_indices][i] * prob.transpose(1, 2, 3, 0)[detected_indices][i].max(),
-            "box"  : Box(x[detected_indices][i], y[detected_indices][i], w[detected_indices][i], h[detected_indices][i]).crop_region(input_height, input_width)
-        })
+            "box"  : Box(
+                        x[detected_indices][i]*input_width,
+                        y[detected_indices][i]*input_height,
+                        w[detected_indices][i]*input_width,
+                        h[detected_indices][i]*input_height).crop_region(input_height, input_width)
+            })
 
     # nms
     nms_results = nms(results, iou_thresh)
