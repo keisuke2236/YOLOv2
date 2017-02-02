@@ -5,3 +5,4 @@ sample_images/*.jpg
 *.avi
 *.model
 *.mov
+*.weights

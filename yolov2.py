@@ -285,9 +285,9 @@ class YOLOv2Predictor(Chain):
         w_anchor = Variable(np.broadcast_to(np.reshape(np.array(self.anchors, dtype=np.float32)[:, 0], (self.predictor.n_boxes, 1, 1, 1)), w.shape))
         h_anchor = Variable(np.broadcast_to(np.reshape(np.array(self.anchors, dtype=np.float32)[:, 1], (self.predictor.n_boxes, 1, 1, 1)), h.shape))
         #x_shift.to_gpu(), y_shift.to_gpu(), w_anchor.to_gpu(), h_anchor.to_gpu()
-        box_x = (x + x_shift) / grid_w * input_w
-        box_y = (y + y_shift) / grid_h * input_h
-        box_w = F.exp(w) * w_anchor / grid_w * input_w
-        box_h = F.exp(h) * h_anchor / grid_h * input_h
+        box_x = (x + x_shift) / grid_w
+        box_y = (y + y_shift) / grid_h
+        box_w = F.exp(w) * w_anchor / grid_w
+        box_h = F.exp(h) * h_anchor / grid_h
 
         return box_x, box_y, box_w, box_h, conf, prob
