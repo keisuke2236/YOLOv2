@@ -6,19 +6,19 @@ import chainer.functions as F
 import argparse
 from yolov2 import *
 
-class CocoPredictor:
+class FashionPredictor:
     def __init__(self):
         # hyper parameters
-        weight_file = "./yolov2_darknet.model"
-        self.n_classes = 80
+        weight_file = "./yolov2_fashion_darknet.model"
+        self.n_classes = 2
         self.n_boxes = 5
-        self.detection_thresh = 0.5
-        self.iou_thresh = 0.5
-        self.labels = ["person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]
-        anchors = [[0.738768, 0.874946], [2.42204, 2.65704], [4.30971, 7.04493], [10.246, 4.59428], [12.6868, 11.8741]]
+        self.detection_thresh = 0.18
+        self.iou_thresh = 0.6
+        self.labels = ["tops", "bottoms"]
+        anchors = [[4.622228,3.813329], [5.936073,11.613329], [6.63,11.38], [9.42,5.11], [8.41,8.34]]
 
         # load model
-        print("loading coco model...")
+        print("loading fashion model...")
         yolov2 = YOLOv2(n_classes=self.n_classes, n_boxes=self.n_boxes)
         serializers.load_hdf5(weight_file, yolov2) # load saved model
         model = YOLOv2Predictor(yolov2)
@@ -35,7 +35,6 @@ class CocoPredictor:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = np.asarray(img, dtype=np.float32) / 255.0
         img = img.transpose(2, 0, 1)
-
 
         # forward
         x_data = img[np.newaxis, :, :, :]
@@ -55,6 +54,7 @@ class CocoPredictor:
         results = []
         for i in range(detected_indices.sum()):
             results.append({
+                "class_id": prob.transpose(1, 2, 3, 0)[detected_indices][i].argmax(),
                 "label": self.labels[prob.transpose(1, 2, 3, 0)[detected_indices][i].argmax()],
                 "probs": prob.transpose(1, 2, 3, 0)[detected_indices][i],
                 "conf" : conf[detected_indices][i],
@@ -79,25 +79,27 @@ if __name__ == "__main__":
 
     # read image
     print("loading image...")
+    #orig_img = reshape_to_yolo_size(cv2.imread(image_file))
     orig_img = cv2.imread(image_file)
 
-    predictor = CocoPredictor()
+    predictor = FashionPredictor()
     nms_results = predictor(orig_img)
 
     # draw result
+    colors = [(255, 0, 255), (0, 255, 0)]
     for result in nms_results:
         left, top = result["box"].int_left_top()
         cv2.rectangle(
             orig_img,
             result["box"].int_left_top(), result["box"].int_right_bottom(),
-            (255, 0, 255),
-            3
+            colors[result["class_id"]],
+            4
         )
         text = '%s(%2d%%)' % (result["label"], result["probs"].max()*result["conf"]*100)
         cv2.putText(orig_img, text, (left, top-6), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         print(text)
 
-    print("save results to yolov2_result.jpg")
-    cv2.imwrite("yolov2_result.jpg", orig_img)
+    print("save results to yolov2_fashion_result.jpg")
+    cv2.imwrite("yolov2_fashion_result.jpg", orig_img)
     cv2.imshow("w", orig_img)
     cv2.waitKey()
