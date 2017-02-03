@@ -38,6 +38,11 @@ python yolov2_darknet_predict.py data/people.png
 ```
 
 
+以下のコマンドで、カメラを起動しリアルタイム物体検出を行う。
+```
+python yolov2_darknet_camera.py 
+```
+
 ## YOLOv2でフルーツデータの訓練
 <a href="./YOLOv2_fruits_train.md">YOLOv2を使ったフルーツデータセットの訓練手順</a>
 
